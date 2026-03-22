@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { adminBountyContext } from "@/lib/admin-data";
-import { adminSubmissions } from "@/lib/admin-submissions-data";
+import { adminSubmissions as seededAdminSubmissions } from "@/lib/admin-submissions-data";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useDemoDataStore } from "@/lib/stores/demo-data-store";
+import { useAuthenticatedDemoStateSync } from "@/lib/use-demo-sync";
 import { cn, truncateAddress } from "@/lib/utils";
 import { Logo } from "../home/logo";
 import { StatusChip } from "../home/status-chip";
@@ -87,8 +88,22 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [supabase] = useState(() => (hasSupabaseEnv() ? createClient() : null));
   const { currentUser, hasHydrated, signOut } = useAppStore();
+  useAuthenticatedDemoStateSync(currentUser?.role === "owner");
+  const demoAdminSubmissions = useDemoDataStore((state) => state.demoAdminSubmissions);
   const submissionDecisions = useDemoDataStore((state) => state.submissionDecisions);
   const notifications = useDemoDataStore((state) => state.notifications);
+
+  const adminSubmissions = useMemo(() => {
+    const seen = new Set<string>();
+    return [...demoAdminSubmissions, ...seededAdminSubmissions].filter((item) => {
+      if (seen.has(item.id)) {
+        return false;
+      }
+
+      seen.add(item.id);
+      return true;
+    });
+  }, [demoAdminSubmissions]);
 
   const submissionsBadge = adminSubmissions.filter((submission) =>
     ["AI SCORED", "UNDER REVIEW", "DISPUTE OPEN"].includes(

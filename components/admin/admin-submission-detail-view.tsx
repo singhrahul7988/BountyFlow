@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { EvidenceUploadsPanel } from "@/components/evidence/evidence-uploads-panel";
+import { updateRemoteSubmissionDecision } from "@/lib/demo-api";
 import type { AdminSubmission } from "@/lib/admin-submissions-data";
+import type { SubmissionDecision } from "@/lib/demo-types";
 import { useDemoDataStore } from "@/lib/stores/demo-data-store";
 import { formatCurrency, truncateAddress } from "@/lib/utils";
 import { StatusChip } from "../home/status-chip";
 
-const evidenceTabs = ["POC CODE", "SCREENSHOTS", "GITHUB"] as const;
+const evidenceTabs = ["POC CODE", "UPLOADS", "SCREENSHOTS", "GITHUB"] as const;
 type EvidenceTab = (typeof evidenceTabs)[number];
 
 function scoreTone(score: number) {
@@ -35,7 +38,10 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
   const [activeTab, setActiveTab] = useState<EvidenceTab>("POC CODE");
   const [showRejectBox, setShowRejectBox] = useState(false);
   const [draftRejectionReason, setDraftRejectionReason] = useState("");
+  const [isSavingDecision, setIsSavingDecision] = useState(false);
+  const [decisionError, setDecisionError] = useState("");
   const submissionDecision = useDemoDataStore((state) => state.submissionDecisions[submission.id]);
+  const syncRemoteSubmissions = useDemoDataStore((state) => state.syncRemoteSubmissions);
   const setSubmissionPayoutPct = useDemoDataStore((state) => state.setSubmissionPayoutPct);
   const applySubmissionDecision = useDemoDataStore((state) => state.applySubmissionDecision);
 
@@ -43,6 +49,31 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
   const status = submissionDecision?.status ?? submission.status;
   const rejectionReason = submissionDecision?.rejectionReason ?? draftRejectionReason;
   const payoutAmount = recommendedAmount(submission, payoutPct);
+
+  async function persistDecision(nextDecision: SubmissionDecision) {
+    applySubmissionDecision(submission.id, nextDecision);
+    setDecisionError("");
+    setIsSavingDecision(true);
+
+    try {
+      const persisted = await updateRemoteSubmissionDecision(submission.id, nextDecision);
+      syncRemoteSubmissions({
+        adminSubmissions: [persisted.adminSubmission],
+        researcherSubmissions: [persisted.researcherSubmission],
+        decisions: {
+          [persisted.adminSubmission.id]: persisted.decision
+        }
+      });
+    } catch (error) {
+      setDecisionError(
+        error instanceof Error
+          ? `${error.message} Decision remains in local demo state.`
+          : "Remote persistence failed. Decision remains in local demo state."
+      );
+    } finally {
+      setIsSavingDecision(false);
+    }
+  }
 
   return (
     <section className="p-6 md:p-8 xl:p-10">
@@ -190,6 +221,10 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
                 </pre>
               ) : null}
 
+              {activeTab === "UPLOADS" ? (
+                <EvidenceUploadsPanel files={submission.uploadedFiles ?? []} />
+              ) : null}
+
               {activeTab === "SCREENSHOTS" ? (
                 <div className="grid gap-4 sm:grid-cols-3">
                   {submission.screenshots.map((shot) => (
@@ -266,26 +301,28 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
                 <button
                   type="button"
                   onClick={() => {
-                    applySubmissionDecision(submission.id, {
+                    void persistDecision({
                       status: "DISPUTE WINDOW",
                       payoutPct
                     });
                     setShowRejectBox(false);
                   }}
                   className="bf-button-primary justify-center"
+                  disabled={isSavingDecision}
                 >
-                  APPROVE & RELEASE USDT -&gt;
+                  {isSavingDecision ? "SAVING..." : "APPROVE & RELEASE USDT ->"}
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    applySubmissionDecision(submission.id, {
+                    void persistDecision({
                       status: "UNDER REVIEW",
                       payoutPct
                     });
                     setShowRejectBox(false);
                   }}
                   className="bf-button-secondary justify-center"
+                  disabled={isSavingDecision}
                 >
                   MARK FOR MANUAL REVIEW
                 </button>
@@ -300,7 +337,7 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
                   <button
                     type="button"
                     onClick={() => {
-                      applySubmissionDecision(submission.id, {
+                      void persistDecision({
                         status: "REJECTED",
                         payoutPct,
                         rejectionReason: draftRejectionReason
@@ -308,11 +345,14 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
                       setShowRejectBox(false);
                     }}
                     className="inline-flex items-center justify-center border border-danger/35 px-4 py-3 font-mono text-[0.75rem] uppercase tracking-label text-danger transition-colors duration-100 ease-linear hover:border-danger hover:bg-danger/10"
+                    disabled={isSavingDecision}
                   >
                     CONFIRM REJECTION
                   </button>
                 ) : null}
               </div>
+
+              {decisionError ? <p className="text-sm leading-7 text-amber">{decisionError}</p> : null}
 
               <p className="text-sm leading-7 text-muted">
                 Approved payouts enter a 48-hour dispute window before autonomous USDT release from

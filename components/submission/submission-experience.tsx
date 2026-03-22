@@ -5,8 +5,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AIScoreDisplay } from "@/components/home/ai-score-display";
 import { StatusChip } from "@/components/home/status-chip";
+import { createRemoteDemoSubmission } from "@/lib/demo-api";
+import type { AdminSubmission } from "@/lib/admin-submissions-data";
 import type { BountyDetail } from "@/lib/bounty-data";
+import type { ResearcherSubmission, UploadedEvidenceFile } from "@/lib/dashboard-data";
 import type { AnalyzerMetric } from "@/lib/mock-data";
+import { createClient } from "@/lib/supabase/client";
+import { hasSupabaseEnv } from "@/lib/supabase/config";
+import { toLocalEvidenceFile, uploadEvidenceFiles } from "@/lib/supabase/storage";
+import { useAppStore } from "@/lib/stores/app-store";
+import { useDemoDataStore } from "@/lib/stores/demo-data-store";
 import { formatCurrency } from "@/lib/utils";
 import { SeveritySegment, type SeverityValue } from "./severity-segment";
 
@@ -114,11 +122,16 @@ const initialState: SubmissionFormState = {
 };
 
 export function SubmissionExperience({ bounty }: { bounty: BountyDetail }) {
+  const [supabase] = useState(() => (hasSupabaseEnv() ? createClient() : null));
+  const currentUser = useAppStore((state) => state.currentUser);
+  const addDemoSubmission = useDemoDataStore((state) => state.addDemoSubmission);
   const [step, setStep] = useState<SubmissionStep>(1);
   const [state, setState] = useState<SubmissionFormState>(initialState);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isDragActive, setIsDragActive] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [submissionId, setSubmissionId] = useState("");
   const [hasAiResult, setHasAiResult] = useState(false);
   const [typedReasoning, setTypedReasoning] = useState("");
@@ -157,6 +170,9 @@ export function SubmissionExperience({ bounty }: { bounty: BountyDetail }) {
   }, [isSubmitted]);
 
   function updateField<Key extends keyof SubmissionFormState>(key: Key, value: SubmissionFormState[Key]) {
+    if (submitError) {
+      setSubmitError("");
+    }
     setState((currentState) => ({ ...currentState, [key]: value }));
     setErrors((currentErrors) => {
       const nextErrors = { ...currentErrors };
@@ -234,16 +250,171 @@ export function SubmissionExperience({ bounty }: { bounty: BountyDetail }) {
     }
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!validateStep(3)) {
       return;
     }
 
-    setSubmissionId(`BF-${crypto.randomUUID().slice(0, 8).toUpperCase()}`);
+    if (isSaving) {
+      return;
+    }
+
+    const suffix = crypto.randomUUID().slice(0, 8).toUpperCase();
+    const adminId = `BF-${suffix}`;
+    const researcherId = `sub-${suffix.toLowerCase()}`;
+    let uploadedFiles: UploadedEvidenceFile[] = [];
+    let uploadWarning = "";
+
+    if (state.files.length) {
+      if (supabase && currentUser?.id) {
+        try {
+          uploadedFiles = await uploadEvidenceFiles(supabase, state.files, {
+            userId: currentUser.id,
+            bountySlug: bounty.slug,
+            submissionId: researcherId
+          });
+        } catch (error) {
+          uploadedFiles = state.files.map((file) => toLocalEvidenceFile(file));
+          uploadWarning =
+            error instanceof Error
+              ? `${error.message} File metadata will still be saved, but uploaded file links are unavailable.`
+              : "Evidence upload failed. File metadata will still be saved, but uploaded links are unavailable.";
+        }
+      } else {
+        uploadedFiles = state.files.map((file) => toLocalEvidenceFile(file));
+        uploadWarning =
+          "Supabase Storage is not ready for this session. File metadata will be saved without hosted links.";
+      }
+    }
+
+    const submissionStatus: AdminSubmission["status"] =
+      preview.score < 5 ? "REJECTED" : preview.score >= 9 ? "UNDER REVIEW" : "AI SCORED";
+    const payoutAmount = Math.round(
+      ((state.severity === "CRITICAL"
+        ? bounty.rewardTiers.critical
+        : state.severity === "HIGH"
+          ? bounty.rewardTiers.high
+          : state.severity === "MEDIUM"
+            ? bounty.rewardTiers.medium
+            : bounty.rewardTiers.low) *
+        preview.recommendedPct) /
+        100
+    );
+
+    const researcherSubmission: ResearcherSubmission = {
+      id: researcherId,
+      bountySlug: bounty.slug,
+      bountyName: bounty.title,
+      title: state.title,
+      submittedAt: new Date().toLocaleString("en-US", {
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: "UTC"
+      }).replace(",", " |") + " UTC",
+      aiScore: preview.score,
+      status:
+        preview.score < 5 ? "REJECTED" : preview.score >= 9 ? "UNDER REVIEW" : "AI SCORED",
+      payout: payoutAmount,
+      severity: (state.severity || "MEDIUM") as ResearcherSubmission["severity"],
+      responseEta: preview.score < 5 ? "CLOSED" : preview.score >= 9 ? "ETA 4H" : "ETA 12H",
+      description: state.description,
+      stepsToReproduce: state.stepsToReproduce
+        .split(/\n+/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+      impactAssessment: state.impactAssessment,
+      evidence: {
+        codeFiles: state.files.length,
+        screenshots: state.files.filter((file) => file.type.startsWith("image/")).length,
+        githubUrl: state.githubUrl || undefined,
+        references: state.references
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+        uploadedFiles
+      }
+    };
+
+    const adminSubmission: AdminSubmission = {
+      id: adminId,
+      severity: (state.severity || "MEDIUM") as AdminSubmission["severity"],
+      title: state.title,
+      reporterAddress: "0x71C03901BF0001",
+      reporterReputation: 7.8,
+      submittedAt: researcherSubmission.submittedAt,
+      aiScore: preview.score,
+      status: submissionStatus,
+      recommendedPct: preview.recommendedPct,
+      tierReward:
+        state.severity === "CRITICAL"
+          ? bounty.rewardTiers.critical
+          : state.severity === "HIGH"
+            ? bounty.rewardTiers.high
+            : state.severity === "MEDIUM"
+              ? bounty.rewardTiers.medium
+              : bounty.rewardTiers.low,
+      summaryRisk: state.impactAssessment.slice(0, 120),
+      subScores: preview.subScores.map((item) => ({
+        label: item.label.replace("REPRODUCIBILITY", "REPRO").replace("IMPACT SCORE", "IMPACT"),
+        value: item.value
+      })),
+      evidencePills: [
+        state.files.length ? `${state.files.length} FILES` : "",
+        state.githubUrl ? "GITHUB LINK" : "",
+        state.references ? "REFERENCES" : ""
+      ].filter(Boolean),
+      description: state.description,
+      stepsToReproduce: researcherSubmission.stepsToReproduce,
+      impactAssessment: state.impactAssessment,
+      codeSnippet: state.description.slice(0, 220) || "// Evidence snippet pending",
+      screenshots: state.files
+        .filter((file) => file.type.startsWith("image/"))
+        .map((file) => file.name),
+      uploadedFiles,
+      github: {
+        url: state.githubUrl || "https://github.com/example/demo-report",
+        repo: state.githubUrl
+          ? state.githubUrl.replace("https://github.com/", "")
+          : "example/demo-report",
+        branch: "main",
+        updatedAt: "JUST NOW"
+      }
+    };
+
+    setIsSaving(true);
+    setSubmitError("");
+
+    try {
+      const persisted = await createRemoteDemoSubmission({ researcherSubmission, adminSubmission });
+      addDemoSubmission({
+        researcherSubmission: persisted.researcherSubmission,
+        adminSubmission: persisted.adminSubmission
+      });
+      if (uploadWarning) {
+        setSubmitError(uploadWarning);
+      }
+    } catch (error) {
+      addDemoSubmission({ researcherSubmission, adminSubmission });
+      setSubmitError(
+        error instanceof Error
+          ? `${error.message} Saved locally for the current demo session only.`
+          : "Remote persistence failed. Saved locally for the current demo session only."
+      );
+      if (uploadWarning) {
+        setSubmitError((current) => `${current ? `${current} ` : ""}${uploadWarning}`.trim());
+      }
+    }
+
+    setSubmissionId(adminId);
     setIsSubmitted(true);
     setHasAiResult(false);
+    setIsSaving(false);
   }
 
   if (isSubmitted) {
@@ -273,6 +444,7 @@ export function SubmissionExperience({ bounty }: { bounty: BountyDetail }) {
               below simulates the score and reasoning that the researcher should see within
               roughly 30 seconds.
             </p>
+            {submitError ? <p className="text-sm leading-7 text-amber">{submitError}</p> : null}
             <div className="flex flex-wrap gap-4">
               <Link href={`/bounty/${bounty.slug}`} className="bf-button-secondary">
                 BACK TO BOUNTY
@@ -639,7 +811,7 @@ export function SubmissionExperience({ bounty }: { bounty: BountyDetail }) {
                   BACK
                 </button>
                 <button type="submit" className="bf-button-primary flex-1 justify-center">
-                  SUBMIT FINDING - TRIGGER AI EVALUATION
+                  {isSaving ? "SUBMITTING..." : "SUBMIT FINDING - TRIGGER AI EVALUATION"}
                 </button>
               </div>
               <p className="text-sm leading-7 text-muted">

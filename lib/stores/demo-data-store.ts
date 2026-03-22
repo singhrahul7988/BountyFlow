@@ -7,19 +7,18 @@ import {
   type AdminNotificationTone
 } from "@/lib/admin-notifications-data";
 import {
-  adminSubmissions,
+  adminSubmissions as seededAdminSubmissions,
+  type AdminSubmission,
   type AdminSubmissionStatus
 } from "@/lib/admin-submissions-data";
 import type { BountyDetail } from "@/lib/bounty-data";
-
-type SubmissionDecision = {
-  status: AdminSubmissionStatus;
-  payoutPct: number;
-  rejectionReason?: string;
-};
+import type { ResearcherSubmission } from "@/lib/dashboard-data";
+import type { SubmissionDecision } from "@/lib/demo-types";
 
 type DemoDataState = {
   createdBounties: BountyDetail[];
+  demoResearcherSubmissions: ResearcherSubmission[];
+  demoAdminSubmissions: AdminSubmission[];
   notifications: AdminNotification[];
   submissionDecisions: Record<string, SubmissionDecision>;
   ownerSettings: {
@@ -35,6 +34,16 @@ type DemoDataState = {
     responseSlaHours: number;
   };
   addCreatedBounty: (bounty: BountyDetail) => void;
+  addDemoSubmission: (payload: {
+    researcherSubmission: ResearcherSubmission;
+    adminSubmission: AdminSubmission;
+  }) => void;
+  syncRemoteBounties: (bounties: BountyDetail[]) => void;
+  syncRemoteSubmissions: (payload: {
+    researcherSubmissions?: ResearcherSubmission[];
+    adminSubmissions?: AdminSubmission[];
+    decisions?: Record<string, SubmissionDecision>;
+  }) => void;
   setSubmissionPayoutPct: (id: string, payoutPct: number) => void;
   applySubmissionDecision: (id: string, next: SubmissionDecision) => void;
   markNotificationRead: (id: string) => void;
@@ -115,7 +124,7 @@ function prependNotification(
 }
 
 const defaultSubmissionDecisions = Object.fromEntries(
-  adminSubmissions.map((submission) => [
+  seededAdminSubmissions.map((submission) => [
     submission.id,
     {
       status: submission.status,
@@ -128,6 +137,8 @@ export const useDemoDataStore = create<DemoDataState>()(
   persist(
     (set) => ({
       createdBounties: [],
+      demoResearcherSubmissions: [],
+      demoAdminSubmissions: [],
       notifications: adminNotifications,
       submissionDecisions: defaultSubmissionDecisions,
       ownerSettings: {
@@ -160,13 +171,92 @@ export const useDemoDataStore = create<DemoDataState>()(
             actionHref: `/bounty/${bounty.slug}`
           })
         })),
+      addDemoSubmission: ({ researcherSubmission, adminSubmission }) =>
+        set((state) => ({
+          demoResearcherSubmissions: [
+            researcherSubmission,
+            ...state.demoResearcherSubmissions.filter(
+              (item) => item.id !== researcherSubmission.id
+            )
+          ],
+          demoAdminSubmissions: [
+            adminSubmission,
+            ...state.demoAdminSubmissions.filter((item) => item.id !== adminSubmission.id)
+          ],
+          submissionDecisions: {
+            ...state.submissionDecisions,
+            [adminSubmission.id]: {
+              status: adminSubmission.status,
+              payoutPct: adminSubmission.recommendedPct
+            }
+          },
+          notifications: prependNotification(state.notifications, {
+            group: "TODAY",
+            type: "SUBMISSION",
+            title: `${adminSubmission.title} entered the owner queue`,
+            description:
+              "A new researcher submission passed the demo intake flow and now requires owner review.",
+            timestamp: "JUST NOW",
+            unread: true,
+            actionLabel: "REVIEW NOW ->",
+            actionHref: `/admin/submissions/${adminSubmission.id}`
+          })
+        })),
+      syncRemoteBounties: (bounties) =>
+        set((state) => {
+          const merged = [...bounties, ...state.createdBounties];
+          const seen = new Set<string>();
+
+          return {
+            createdBounties: merged.filter((item) => {
+              if (seen.has(item.slug)) {
+                return false;
+              }
+
+              seen.add(item.slug);
+              return true;
+            })
+          };
+        }),
+      syncRemoteSubmissions: ({ researcherSubmissions = [], adminSubmissions = [], decisions = {} }) =>
+        set((state) => {
+          const nextResearcher = [...researcherSubmissions, ...state.demoResearcherSubmissions];
+          const nextAdmin = [...adminSubmissions, ...state.demoAdminSubmissions];
+
+          const seenResearcher = new Set<string>();
+          const seenAdmin = new Set<string>();
+
+          return {
+            demoResearcherSubmissions: nextResearcher.filter((item) => {
+              if (seenResearcher.has(item.id)) {
+                return false;
+              }
+
+              seenResearcher.add(item.id);
+              return true;
+            }),
+            demoAdminSubmissions: nextAdmin.filter((item) => {
+              if (seenAdmin.has(item.id)) {
+                return false;
+              }
+
+              seenAdmin.add(item.id);
+              return true;
+            }),
+            submissionDecisions: {
+              ...state.submissionDecisions,
+              ...decisions
+            }
+          };
+        }),
       setSubmissionPayoutPct: (id, payoutPct) =>
         set((state) => ({
           submissionDecisions: {
             ...state.submissionDecisions,
             [id]: {
               ...(state.submissionDecisions[id] ?? {
-                status: adminSubmissions.find((item) => item.id === id)?.status ?? "AI SCORED"
+                status:
+                  seededAdminSubmissions.find((item) => item.id === id)?.status ?? "AI SCORED"
               }),
               payoutPct
             }

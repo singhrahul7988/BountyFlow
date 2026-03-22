@@ -10,6 +10,15 @@ export type ResearcherSubmissionStatus =
   | "REJECTED"
   | "PAID";
 
+export type UploadedEvidenceFile = {
+  name: string;
+  path?: string;
+  url?: string;
+  size: number;
+  mimeType: string;
+  kind: "image" | "pdf" | "video" | "archive" | "code" | "other";
+};
+
 export type ResearcherSubmission = {
   id: string;
   bountySlug: string;
@@ -30,6 +39,7 @@ export type ResearcherSubmission = {
     screenshots: number;
     githubUrl?: string;
     references: string[];
+    uploadedFiles?: UploadedEvidenceFile[];
   };
 };
 

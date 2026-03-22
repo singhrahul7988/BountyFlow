@@ -13,3 +13,7 @@ export function getSupabasePublishableKey() {
 export function hasSupabaseEnv() {
   return Boolean(getSupabaseUrl() && getSupabasePublishableKey());
 }
+
+export function getSupabaseEvidenceBucket() {
+  return process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || "submission-evidence";
+}

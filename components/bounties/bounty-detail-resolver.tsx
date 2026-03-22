@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import type { BountyDetail } from "@/lib/bounty-data";
 import { useDemoDataStore } from "@/lib/stores/demo-data-store";
+import { usePublicBountiesSync } from "@/lib/use-demo-sync";
 import { BountyDetailPageContent } from "./bounty-detail-page-content";
 
 export function BountyDetailResolver({
@@ -14,6 +15,7 @@ export function BountyDetailResolver({
   initialBounty: BountyDetail | null;
 }) {
   const createdBounties = useDemoDataStore((state) => state.createdBounties);
+  const hasLoaded = usePublicBountiesSync();
 
   const bounty = useMemo(
     () => initialBounty ?? createdBounties.find((item) => item.slug === slug) ?? null,
@@ -21,6 +23,22 @@ export function BountyDetailResolver({
   );
 
   if (!bounty) {
+    if (!hasLoaded) {
+      return (
+        <main className="min-h-screen bg-background text-foreground">
+          <section className="bf-shell pt-32 pb-24">
+            <div className="max-w-4xl bg-surface-low p-8 md:p-10">
+              <p className="bf-label text-primary">RESOLVING PROGRAM</p>
+              <h1 className="bf-display mt-5 text-[2.2rem] leading-none tracking-tightHeading sm:text-[3.4rem]">
+                LOADING
+                <span className="block">BOUNTY</span>
+              </h1>
+            </div>
+          </section>
+        </main>
+      );
+    }
+
     return (
       <main className="min-h-screen bg-background text-foreground">
         <section className="bf-shell pt-32 pb-24">

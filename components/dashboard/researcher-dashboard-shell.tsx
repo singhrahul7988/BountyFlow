@@ -8,18 +8,23 @@ import {
   buildDynamicPayoutHistory,
   applySubmissionDecisionToResearcher
 } from "@/lib/demo-lifecycle";
+import { useAppStore } from "@/lib/stores/app-store";
 import { useDemoDataStore } from "@/lib/stores/demo-data-store";
+import { useAuthenticatedDemoStateSync } from "@/lib/use-demo-sync";
 import { ResearcherDashboard } from "./researcher-dashboard";
 
 export function ResearcherDashboardShell() {
+  const currentUser = useAppStore((state) => state.currentUser);
+  useAuthenticatedDemoStateSync(currentUser?.role === "researcher");
   const submissionDecisions = useDemoDataStore((state) => state.submissionDecisions);
+  const demoResearcherSubmissions = useDemoDataStore((state) => state.demoResearcherSubmissions);
 
   const resolvedSubmissions = useMemo(
     () =>
-      researcherSubmissions.map((submission) =>
+      [...demoResearcherSubmissions, ...researcherSubmissions].map((submission) =>
         applySubmissionDecisionToResearcher(submission, submissionDecisions)
       ),
-    [submissionDecisions]
+    [demoResearcherSubmissions, submissionDecisions]
   );
 
   const summary = useMemo(() => buildDashboardSummary(resolvedSubmissions), [resolvedSubmissions]);

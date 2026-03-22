@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 
 import { BountyCard } from "@/components/home/bounty-card";
 import type { BountyDetail } from "@/lib/bounty-data";
+import { createRemoteDemoBounty } from "@/lib/demo-api";
 import type { BountyCardData } from "@/lib/mock-data";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useDemoDataStore } from "@/lib/stores/demo-data-store";
@@ -71,6 +72,8 @@ export function AdminCreateBounty() {
   const addCreatedBounty = useDemoDataStore((state) => state.addCreatedBounty);
   const [isAiOpen, setIsAiOpen] = useState(true);
   const [isPublished, setIsPublished] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishError, setPublishError] = useState("");
   const [form, setForm] = useState({
     title: "ETHEREUM L2 BRIDGE AUDIT",
     projectUrl: "https://bridge.example.com",
@@ -131,11 +134,13 @@ export function AdminCreateBounty() {
 
   function updateField<Key extends keyof typeof form>(key: Key, value: (typeof form)[Key]) {
     setIsPublished(false);
+    setPublishError("");
     setForm((current) => ({ ...current, [key]: value }));
   }
 
   function toggleSeverity(level: string) {
     setIsPublished(false);
+    setPublishError("");
     setForm((current) => {
       const isActive = current.acceptedSeverities.includes(level);
 
@@ -148,7 +153,11 @@ export function AdminCreateBounty() {
     });
   }
 
-  function handlePublish() {
+  async function handlePublish() {
+    if (isPublishing) {
+      return;
+    }
+
     const createdBounty: BountyDetail = {
       id: `custom-${slug}`,
       slug,
@@ -210,8 +219,24 @@ export function AdminCreateBounty() {
       ]
     };
 
-    addCreatedBounty(createdBounty);
-    setIsPublished(true);
+    setIsPublishing(true);
+    setPublishError("");
+
+    try {
+      const remoteBounty = await createRemoteDemoBounty(createdBounty);
+      addCreatedBounty(remoteBounty);
+      setIsPublished(true);
+    } catch (error) {
+      addCreatedBounty(createdBounty);
+      setIsPublished(true);
+      setPublishError(
+        error instanceof Error
+          ? `${error.message} Falling back to local demo persistence for this session.`
+          : "Remote persistence failed. Falling back to local demo persistence for this session."
+      );
+    } finally {
+      setIsPublishing(false);
+    }
   }
 
   return (
@@ -471,8 +496,13 @@ export function AdminCreateBounty() {
                   Funding is non-custodial at the protocol layer. For the demo, launch is simulated
                   locally and updates the live preview state immediately.
                 </p>
-                <button type="button" onClick={handlePublish} className="bf-button-primary">
-                  FUND ESCROW &amp; GO LIVE
+                <button
+                  type="button"
+                  onClick={handlePublish}
+                  className="bf-button-primary"
+                  disabled={isPublishing}
+                >
+                  {isPublishing ? "PUBLISHING..." : "FUND ESCROW & GO LIVE"}
                   <span aria-hidden="true">-&gt;</span>
                 </button>
               </div>
@@ -486,6 +516,7 @@ export function AdminCreateBounty() {
                   </p>
                 </div>
               ) : null}
+              {publishError ? <p className="text-[0.8rem] leading-7 text-amber">{publishError}</p> : null}
             </section>
           </div>
         </div>

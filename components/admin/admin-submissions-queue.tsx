@@ -3,15 +3,18 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { EvidenceUploadsPanel } from "@/components/evidence/evidence-uploads-panel";
 import { TerminalSelect } from "@/components/ui/terminal-select";
-import { adminSubmissions, type AdminSubmission } from "@/lib/admin-submissions-data";
+import { updateRemoteSubmissionDecision } from "@/lib/demo-api";
+import type { AdminSubmission } from "@/lib/admin-submissions-data";
+import type { SubmissionDecision } from "@/lib/demo-types";
 import { useDemoDataStore } from "@/lib/stores/demo-data-store";
 import { formatCurrency, truncateAddress } from "@/lib/utils";
 import { StatusChip } from "../home/status-chip";
 
 const filterTabs = ["ALL", "CRITICAL", "HIGH", "MEDIUM", "NEEDS ACTION"] as const;
 const sortOptions = ["NEWEST", "HIGHEST_SCORE", "RECOMMENDED_PAYOUT"] as const;
-const evidenceTabs = ["POC CODE", "SCREENSHOTS", "GITHUB"] as const;
+const evidenceTabs = ["POC CODE", "UPLOADS", "SCREENSHOTS", "GITHUB"] as const;
 
 type SortValue = (typeof sortOptions)[number];
 type FilterValue = (typeof filterTabs)[number];
@@ -37,31 +40,34 @@ function recommendedAmount(submission: AdminSubmission, payoutPct: number) {
   return Math.round((submission.tierReward * payoutPct) / 100);
 }
 
-export function AdminSubmissionsQueue() {
+export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
   const submissionDecisions = useDemoDataStore((state) => state.submissionDecisions);
+  const syncRemoteSubmissions = useDemoDataStore((state) => state.syncRemoteSubmissions);
   const setSubmissionPayoutPct = useDemoDataStore((state) => state.setSubmissionPayoutPct);
   const applySubmissionDecision = useDemoDataStore((state) => state.applySubmissionDecision);
   const [activeFilter, setActiveFilter] = useState<FilterValue>("ALL");
   const [sortBy, setSortBy] = useState<SortValue>("NEWEST");
   const [searchQuery, setSearchQuery] = useState("");
   const [dismissedCriticalBanner, setDismissedCriticalBanner] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(adminSubmissions[0]?.id ?? null);
+  const [expandedId, setExpandedId] = useState<string | null>(items[0]?.id ?? null);
   const [evidenceTabById, setEvidenceTabById] = useState<Record<string, EvidenceTab>>({});
   const [rejectionModeById, setRejectionModeById] = useState<Record<string, boolean>>({});
   const [rejectionReasonById, setRejectionReasonById] = useState<Record<string, string>>({});
+  const [savingDecisionById, setSavingDecisionById] = useState<Record<string, boolean>>({});
+  const [decisionErrorById, setDecisionErrorById] = useState<Record<string, string>>({});
 
-  const criticalSubmission = adminSubmissions.find((submission) => submission.aiScore >= 9);
+  const criticalSubmission = items.find((submission) => submission.aiScore >= 9);
 
   const filterCounts = useMemo(() => {
     return filterTabs.reduce<Record<FilterValue, number>>(
       (accumulator, filterValue) => {
         if (filterValue === "ALL") {
-          accumulator[filterValue] = adminSubmissions.length;
+          accumulator[filterValue] = items.length;
           return accumulator;
         }
 
         if (filterValue === "NEEDS ACTION") {
-          accumulator[filterValue] = adminSubmissions.filter((submission) =>
+          accumulator[filterValue] = items.filter((submission) =>
             ["AI SCORED", "UNDER REVIEW", "DISPUTE OPEN"].includes(
               submissionDecisions[submission.id]?.status ?? submission.status
             )
@@ -69,7 +75,7 @@ export function AdminSubmissionsQueue() {
           return accumulator;
         }
 
-        accumulator[filterValue] = adminSubmissions.filter(
+        accumulator[filterValue] = items.filter(
           (submission) => submission.severity === filterValue
         ).length;
         return accumulator;
@@ -82,12 +88,12 @@ export function AdminSubmissionsQueue() {
         "NEEDS ACTION": 0
       }
     );
-  }, [submissionDecisions]);
+  }, [items, submissionDecisions]);
 
   const visibleSubmissions = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
-    const filtered = adminSubmissions.filter((submission) => {
+    const filtered = items.filter((submission) => {
       const currentStatus = submissionDecisions[submission.id]?.status ?? submission.status;
       const matchesFilter =
         activeFilter === "ALL" ||
@@ -127,31 +133,66 @@ export function AdminSubmissionsQueue() {
         );
       }
 
-      return adminSubmissions.findIndex((item) => item.id === left.id) -
-        adminSubmissions.findIndex((item) => item.id === right.id);
+      return items.findIndex((item) => item.id === left.id) - items.findIndex((item) => item.id === right.id);
     });
-  }, [activeFilter, searchQuery, sortBy, submissionDecisions]);
+  }, [activeFilter, items, searchQuery, sortBy, submissionDecisions]);
+
+  async function persistDecision(submissionId: string, nextDecision: SubmissionDecision) {
+    applySubmissionDecision(submissionId, nextDecision);
+    setSavingDecisionById((current) => ({ ...current, [submissionId]: true }));
+    setDecisionErrorById((current) => ({ ...current, [submissionId]: "" }));
+
+    try {
+      const persisted = await updateRemoteSubmissionDecision(submissionId, nextDecision);
+      syncRemoteSubmissions({
+        adminSubmissions: [persisted.adminSubmission],
+        researcherSubmissions: [persisted.researcherSubmission],
+        decisions: {
+          [persisted.adminSubmission.id]: persisted.decision
+        }
+      });
+    } catch (error) {
+      setDecisionErrorById((current) => ({
+        ...current,
+        [submissionId]:
+          error instanceof Error
+            ? `${error.message} Decision remains in local demo state.`
+            : "Remote persistence failed. Decision remains in local demo state."
+      }));
+    } finally {
+      setSavingDecisionById((current) => ({ ...current, [submissionId]: false }));
+    }
+  }
 
   function handleApprove(submissionId: string) {
-    applySubmissionDecision(submissionId, {
+    void persistDecision(submissionId, {
       status: "DISPUTE WINDOW",
-      payoutPct: submissionDecisions[submissionId]?.payoutPct ?? adminSubmissions.find((item) => item.id === submissionId)?.recommendedPct ?? 0
+      payoutPct:
+        submissionDecisions[submissionId]?.payoutPct ??
+        items.find((item) => item.id === submissionId)?.recommendedPct ??
+        0
     });
     setRejectionModeById((current) => ({ ...current, [submissionId]: false }));
   }
 
   function handleManualReview(submissionId: string) {
-    applySubmissionDecision(submissionId, {
+    void persistDecision(submissionId, {
       status: "UNDER REVIEW",
-      payoutPct: submissionDecisions[submissionId]?.payoutPct ?? adminSubmissions.find((item) => item.id === submissionId)?.recommendedPct ?? 0
+      payoutPct:
+        submissionDecisions[submissionId]?.payoutPct ??
+        items.find((item) => item.id === submissionId)?.recommendedPct ??
+        0
     });
     setRejectionModeById((current) => ({ ...current, [submissionId]: false }));
   }
 
   function handleReject(submissionId: string) {
-    applySubmissionDecision(submissionId, {
+    void persistDecision(submissionId, {
       status: "REJECTED",
-      payoutPct: submissionDecisions[submissionId]?.payoutPct ?? adminSubmissions.find((item) => item.id === submissionId)?.recommendedPct ?? 0,
+      payoutPct:
+        submissionDecisions[submissionId]?.payoutPct ??
+        items.find((item) => item.id === submissionId)?.recommendedPct ??
+        0,
       rejectionReason: rejectionReasonById[submissionId] ?? ""
     });
     setRejectionModeById((current) => ({ ...current, [submissionId]: false }));
@@ -248,6 +289,8 @@ export function AdminSubmissionsQueue() {
             const payoutAmount = recommendedAmount(submission, payoutPct);
             const activeEvidenceTab = evidenceTabById[submission.id] ?? "POC CODE";
             const showRejectionBox = rejectionModeById[submission.id] ?? false;
+            const isSavingDecision = savingDecisionById[submission.id] ?? false;
+            const decisionError = decisionErrorById[submission.id];
 
             return (
               <article
@@ -303,8 +346,9 @@ export function AdminSubmissionsQueue() {
                         handleApprove(submission.id);
                       }}
                       className="bf-button-primary px-4 py-3"
+                      disabled={isSavingDecision}
                     >
-                      APPROVE
+                      {isSavingDecision ? "SAVING..." : "APPROVE"}
                     </button>
                   </div>
                 </div>
@@ -438,6 +482,10 @@ export function AdminSubmissionsQueue() {
                         </pre>
                       ) : null}
 
+                      {activeEvidenceTab === "UPLOADS" ? (
+                        <EvidenceUploadsPanel files={submission.uploadedFiles ?? []} />
+                      ) : null}
+
                       {activeEvidenceTab === "SCREENSHOTS" ? (
                         <div className="grid gap-4 sm:grid-cols-3">
                           {submission.screenshots.map((shot) => (
@@ -521,13 +569,15 @@ export function AdminSubmissionsQueue() {
                           type="button"
                           onClick={() => handleApprove(submission.id)}
                           className="bf-button-primary justify-center xl:flex-1"
+                          disabled={isSavingDecision}
                         >
-                          APPROVE & RELEASE USDT -&gt;
+                          {isSavingDecision ? "SAVING..." : "APPROVE & RELEASE USDT ->"}
                         </button>
                         <button
                           type="button"
                           onClick={() => handleManualReview(submission.id)}
                           className="bf-button-secondary justify-center"
+                          disabled={isSavingDecision}
                         >
                           MARK FOR MANUAL REVIEW
                         </button>
@@ -550,9 +600,14 @@ export function AdminSubmissionsQueue() {
                           type="button"
                           onClick={() => handleReject(submission.id)}
                           className="inline-flex items-center justify-center border border-danger/35 px-4 py-3 font-mono text-[0.75rem] uppercase tracking-label text-danger transition-colors duration-100 ease-linear hover:border-danger hover:bg-danger/10"
+                          disabled={isSavingDecision}
                         >
                           CONFIRM REJECTION
                         </button>
+                      ) : null}
+
+                      {decisionError ? (
+                        <p className="text-sm leading-7 text-amber">{decisionError}</p>
                       ) : null}
 
                       <p className="text-sm leading-7 text-muted">

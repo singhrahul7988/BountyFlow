@@ -1,3 +1,5 @@
+import type { UploadedEvidenceFile } from "@/lib/dashboard-data";
+
 export type AdminSubmissionSeverity = "CRITICAL" | "HIGH" | "MEDIUM";
 
 export type AdminSubmissionStatus =
@@ -27,6 +29,7 @@ export type AdminSubmission = {
   impactAssessment: string;
   codeSnippet: string;
   screenshots: string[];
+  uploadedFiles?: UploadedEvidenceFile[];
   github: {
     url: string;
     repo: string;

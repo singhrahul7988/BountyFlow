@@ -4,9 +4,11 @@ import { useMemo } from "react";
 
 import type { BountyDetail } from "@/lib/bounty-data";
 import { useDemoDataStore } from "@/lib/stores/demo-data-store";
+import { usePublicBountiesSync } from "@/lib/use-demo-sync";
 import { BountiesExplorer } from "./bounties-explorer";
 
 export function BountiesExplorerShell({ items }: { items: BountyDetail[] }) {
+  usePublicBountiesSync();
   const createdBounties = useDemoDataStore((state) => state.createdBounties);
 
   const mergedItems = useMemo(() => {

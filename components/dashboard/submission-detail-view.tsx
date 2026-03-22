@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EvidenceUploadsPanel } from "@/components/evidence/evidence-uploads-panel";
 import type { ResearcherSubmission } from "@/lib/dashboard-data";
 import { formatCurrency } from "@/lib/utils";
 import { StatusChip } from "../home/status-chip";
@@ -110,6 +111,12 @@ export function SubmissionDetailView({ submission }: { submission: ResearcherSub
                   </span>
                 </div>
               </div>
+              {submission.evidence.uploadedFiles?.length ? (
+                <div className="mt-5 space-y-3">
+                  <p className="bf-label text-primary">UPLOADED ARTIFACTS</p>
+                  <EvidenceUploadsPanel files={submission.evidence.uploadedFiles} />
+                </div>
+              ) : null}
               {submission.evidence.githubUrl ? (
                 <Link
                   href={submission.evidence.githubUrl}
