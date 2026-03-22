@@ -21,8 +21,9 @@ export function BountyCard({
   severity,
   description,
   ctaLabel,
-  compact = false
-}: BountyCardData & { compact?: boolean }) {
+  compact = false,
+  minimal = false
+}: BountyCardData & { compact?: boolean; minimal?: boolean }) {
   return (
     <article
       className="bf-panel group relative flex h-full flex-col overflow-hidden transition-all duration-300 ease-out hover:-translate-y-[4px] hover:border-outline/30 hover:bg-surface-high"
@@ -31,20 +32,24 @@ export function BountyCard({
       <div className={`flex h-full flex-col ${compact ? "gap-4 p-4 pl-5" : "gap-5 p-5 pl-6"}`}>
         <div className={`flex items-start justify-between ${compact ? "min-h-[5.6rem] gap-2.5" : "min-h-[7rem] gap-3"}`}>
           <div className="min-w-0 flex-1">
-            <p className={`bf-label ${compact ? "text-[0.58rem]" : "text-[0.64rem]"}`}>{platform}</p>
+            {!minimal ? (
+              <p className={`bf-label ${compact ? "text-[0.58rem]" : "text-[0.64rem]"}`}>{platform}</p>
+            ) : null}
             <h3
               className={`bf-display max-w-[9ch] leading-none tracking-tightHeading text-foreground ${
                 compact
-                  ? "mt-3 min-h-[2.9rem] text-[1.15rem] sm:text-[1.3rem]"
+                  ? `${minimal ? "mt-0" : "mt-3"} min-h-[2.9rem] text-[1.15rem] sm:text-[1.3rem]`
                   : "mt-4 min-h-[3.6rem] text-[1.55rem] sm:text-[1.75rem]"
               }`}
             >
               {title}
             </h3>
           </div>
-          <span className={`bf-label text-right text-muted ${compact ? "w-[3.1rem] text-[0.56rem]" : "w-[3.7rem] text-[0.64rem]"}`}>
-            {submissionCount} FILED
-          </span>
+          {!minimal ? (
+            <span className={`bf-label text-right text-muted ${compact ? "w-[3.1rem] text-[0.56rem]" : "w-[3.7rem] text-[0.64rem]"}`}>
+              {submissionCount} FILED
+            </span>
+          ) : null}
         </div>
 
         <p
@@ -70,18 +75,20 @@ export function BountyCard({
           >
             {formatCurrency(rewardPool, 0)} USDT
           </p>
-          <div className={`flex flex-wrap content-start gap-1.5 ${compact ? "min-h-[3.3rem]" : "min-h-[4.5rem]"}`}>
-            {tiers.map((tier) => (
-              <span
-                key={tier}
-                className={`bg-surface-high font-mono uppercase tracking-label text-muted ${
-                  compact ? "px-1 py-[0.22rem] text-[0.38rem]" : "px-1.5 py-[0.34rem] text-[0.54rem]"
-                }`}
-              >
-                {tier}
-              </span>
-            ))}
-          </div>
+          {!minimal ? (
+            <div className={`flex flex-wrap content-start gap-1.5 ${compact ? "min-h-[3.3rem]" : "min-h-[4.5rem]"}`}>
+              {tiers.map((tier) => (
+                <span
+                  key={tier}
+                  className={`bg-surface-high font-mono uppercase tracking-label text-muted ${
+                    compact ? "px-1 py-[0.22rem] text-[0.38rem]" : "px-1.5 py-[0.34rem] text-[0.54rem]"
+                  }`}
+                >
+                  {tier}
+                </span>
+              ))}
+            </div>
+          ) : null}
           <div
             className={`flex items-end pt-1 ${
               compact ? "min-h-[2.1rem] justify-end gap-2.5" : "min-h-[3rem] justify-between gap-3"

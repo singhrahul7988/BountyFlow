@@ -255,6 +255,7 @@ export function ResearcherDashboard({
                   description={item.shortDescription}
                   ctaLabel="VIEW BOUNTY"
                   compact
+                  minimal
                 />
               ))}
             </div>
