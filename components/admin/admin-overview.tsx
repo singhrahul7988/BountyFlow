@@ -27,40 +27,41 @@ export function AdminOverview({
   const dashOffset = circumference - (healthBreakdown.remainingPct / 100) * circumference;
 
   return (
-    <section className="p-6 md:p-8 xl:p-10">
-      <div className="space-y-10">
-        <div className="space-y-4">
+    <section className="p-5 md:p-6 xl:p-7">
+      <div className="space-y-8">
+        <div className="space-y-3">
           <p className="bf-label text-primary">PROJECT OWNER ENTRY</p>
-          <h1 className="bf-display text-[2.9rem] leading-none tracking-tightHeading sm:text-[4.1rem]">
+          <h1 className="bf-display text-[2.3rem] leading-none tracking-tightHeading sm:text-[3.3rem]">
             OVERVIEW
           </h1>
-          <p className="text-sm leading-8 text-muted">
+          <p className="text-[0.84rem] leading-7 text-muted">
             ETHEREUM L2 BRIDGE AUDIT | LAST UPDATED 2 MIN AGO
           </p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => (
-            <article key={stat.label} className="space-y-4 bg-surface-high p-6">
+            <article key={stat.label} className="space-y-3.5 bg-surface-high p-5">
               <p className="bf-label">{stat.label}</p>
-              <p className={`bf-data text-[2.25rem] ${stat.tone}`}>{stat.value}</p>
-              <p className="text-sm leading-7 text-muted">{stat.detail}</p>
+              <p className={`bf-data text-[1.85rem] ${stat.tone}`}>{stat.value}</p>
+              <p className="text-[0.82rem] leading-6 text-muted">{stat.detail}</p>
             </article>
           ))}
         </div>
 
-        <div className="grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
-          <section className="space-y-5 bg-surface-high p-6 md:p-7">
-            <div className="space-y-3">
+        <div className="grid gap-6 xl:grid-cols-[0.96fr_1.04fr]">
+          <section className="space-y-5 bg-surface-high p-5 md:p-6">
+            <div className="space-y-2.5">
               <p className="bf-label text-primary">BOUNTY HEALTH</p>
-              <h2 className="bf-display text-[1.65rem] leading-none tracking-tightHeading">
+              <h2 className="bf-display text-[1.35rem] leading-none tracking-tightHeading">
                 TREASURY REMAINING
               </h2>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[0.58fr_0.42fr] lg:items-center">
-              <div className="relative mx-auto h-[170px] w-[170px]">
-                <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
+            <div className="grid gap-6 lg:grid-cols-[0.5fr_0.5fr] lg:items-center">
+              <div className="space-y-4">
+                <div className="relative mx-auto h-[184px] w-[184px]">
+                  <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
                   <circle
                     cx="70"
                     cy="70"
@@ -86,13 +87,18 @@ export function AdminOverview({
                       <stop offset="100%" stopColor="#00e5a0" />
                     </linearGradient>
                   </defs>
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <p className="bf-data text-[2.1rem] text-primary">{healthBreakdown.remainingPct}%</p>
-                  <p className="bf-label">OF POOL REMAINING</p>
-                  <p className="mt-1.5 text-sm leading-6 text-muted">
-                    {formatCurrency(healthBreakdown.currentBalance, 0)} /{" "}
-                    {formatCurrency(healthBreakdown.totalBalance, 0)}
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <p className="bf-data text-[2rem] text-primary">{healthBreakdown.remainingPct}%</p>
+                    <p className="bf-label max-w-[7rem] leading-5">OF POOL REMAINING</p>
+                  </div>
+                </div>
+                <div className="space-y-1 text-center">
+                  <p className="bf-data text-[1rem] text-primary">
+                    {formatCurrency(healthBreakdown.currentBalance, 0)}
+                  </p>
+                  <p className="text-[0.78rem] leading-6 text-muted">
+                    OF {formatCurrency(healthBreakdown.totalBalance, 0)} TOTAL POOL
                   </p>
                 </div>
               </div>
@@ -118,17 +124,15 @@ export function AdminOverview({
                     tone: "bg-primary-gradient"
                   }
                 ].map((row) => (
-                  <div key={row.label} className="space-y-2">
-                    <div className="flex items-center justify-between gap-4">
+                  <div key={row.label} className="space-y-2.5">
+                    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
                       <span className="bf-label text-foreground">{row.label}</span>
-                      <div className="flex items-center gap-3">
-                        <span className="bf-label text-muted">{row.width}%</span>
-                        <span className="bf-data text-[0.88rem] text-foreground">
-                          {formatCurrency(row.amount, 0)}
-                        </span>
-                      </div>
+                      <span className="justify-self-end bf-label text-muted">{row.width}%</span>
+                      <span className="bf-data text-[0.82rem] text-foreground">
+                        {formatCurrency(row.amount, 0)}
+                      </span>
                     </div>
-                    <div className="h-[9px] bg-background">
+                    <div className="h-[8px] overflow-hidden bg-background">
                       <div className={`h-full ${row.tone}`} style={{ width: `${row.width}%` }} />
                     </div>
                   </div>
@@ -136,25 +140,25 @@ export function AdminOverview({
               </div>
             </div>
 
-            <p className="text-sm leading-7 text-primary">
+            <p className="text-[0.82rem] leading-6 text-primary">
               IDLE FUNDS EARNING YIELD ON AAVE V3 | APY: {healthBreakdown.apy}
             </p>
           </section>
 
-          <section className="space-y-6 bg-surface-high p-7 md:p-8">
-            <div className="space-y-3">
+          <section className="space-y-5 bg-surface-high p-5 md:p-6">
+            <div className="space-y-2.5">
               <p className="bf-label text-primary">RECENT ACTIVITY</p>
-              <h2 className="bf-display text-[1.5rem] leading-none tracking-tightHeading">
+              <h2 className="bf-display text-[1.28rem] leading-none tracking-tightHeading">
                 FEED
               </h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {recentActivity.map((item) => (
-                <article key={item.id} className="flex gap-4 bg-background p-5">
-                  <span className={`mt-1 h-3 w-3 shrink-0 ${activityTone(item.type)}`} />
+                <article key={item.id} className="flex gap-4 bg-background p-4">
+                  <span className={`mt-1 h-2.5 w-2.5 shrink-0 ${activityTone(item.type)}`} />
                   <div className="space-y-2">
-                    <p className="text-sm leading-7 text-foreground">{item.label}</p>
+                    <p className="text-[0.82rem] leading-6 text-foreground">{item.label}</p>
                     <p className="bf-label">{item.timestamp}</p>
                   </div>
                 </article>

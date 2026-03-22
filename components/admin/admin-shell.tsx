@@ -138,23 +138,25 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground lg:flex">
-      <aside className="bg-surface-low lg:fixed lg:inset-y-0 lg:left-0 lg:w-[252px]">
-        <div className="flex h-full flex-col gap-7 p-5">
+      <aside className="bg-surface-low lg:fixed lg:inset-y-0 lg:left-0 lg:w-[228px]">
+        <div className="flex h-full flex-col gap-5 overflow-y-auto p-4">
           <Link href="/admin">
-            <Logo compact className="max-w-full" />
+            <Logo compact className="max-w-full gap-2" />
           </Link>
 
-          <div className="space-y-3 bg-background p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1.5">
-                <p className="bf-display text-[0.96rem] leading-none tracking-tightHeading">
+          <div className="space-y-3 bg-background p-3.5">
+            <div className="space-y-2.5">
+              <div className="flex flex-col gap-2">
+                <p className="bf-display text-[0.88rem] leading-[1.15] tracking-tightHeading">
                   {adminBountyContext.name}
                 </p>
-                <p className="bf-label text-muted">CURRENT PROGRAM</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusChip status={adminBountyContext.status} />
+                  <p className="bf-label text-muted">CURRENT PROGRAM</p>
+                </div>
               </div>
-              <StatusChip status={adminBountyContext.status} />
             </div>
-            <button type="button" className="bf-button-tertiary">
+            <button type="button" className="bf-button-tertiary w-full justify-center px-3 py-2.5 text-[0.66rem]">
               SWITCH BOUNTY
             </button>
           </div>
@@ -169,7 +171,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   key={item.label}
                   href={item.href}
                   className={cn(
-                    "flex items-center justify-between gap-3 border-l-[3px] border-transparent px-4 py-3 font-mono text-[0.78rem] uppercase tracking-label text-muted transition-colors duration-100 ease-linear hover:text-foreground",
+                    "flex items-center justify-between gap-3 border-l-[3px] border-transparent px-3.5 py-2.5 font-mono text-[0.72rem] uppercase tracking-label text-muted transition-colors duration-100 ease-linear hover:text-foreground",
                     isActive ? "border-primary bg-primary/5 text-primary" : ""
                   )}
                 >
@@ -178,7 +180,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                     {item.label}
                   </span>
                   {item.badge ? (
-                    <span className="bg-surface-high px-2 py-1 font-data text-[0.72rem] text-amber">
+                    <span className="bg-surface-high px-2 py-1 font-data text-[0.68rem] text-amber">
                       {item.badge}
                     </span>
                   ) : null}
@@ -187,14 +189,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          <div className="mt-auto space-y-4 bg-background p-4">
+          <div className="mt-auto space-y-3 bg-background p-3.5">
             {hasHydrated && currentUser ? (
               <>
                 <div className="space-y-2">
                   <p className="bf-label">OWNER WALLET</p>
                   <div className="flex items-center gap-3">
                     <span className="h-2 w-2 animate-pulse-dot bg-primary" />
-                    <span className="bf-data text-[0.82rem] text-muted">
+                    <span className="bf-data text-[0.76rem] text-muted">
                       {currentUser.walletLinked
                         ? truncateAddress(currentUser.walletAddress)
                         : "NOT LINKED"}
@@ -202,14 +204,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   </div>
                 </div>
                 <WalletLinkButton
-                  className="w-full justify-center"
+                  className="w-full justify-center px-3 py-2.5 text-[0.66rem]"
                   showHelperText={false}
+                  showInlineFeedback={false}
                 />
                 <button
                   type="button"
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="bf-button-tertiary"
+                  className="bf-button-tertiary w-full justify-center px-3 py-2.5 text-[0.66rem]"
                 >
                   {isLoggingOut ? "LOGGING OUT..." : "LOG OUT"}
                 </button>
@@ -224,7 +227,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="min-h-screen flex-1 lg:ml-[252px]">{children}</main>
+      <main className="min-h-screen flex-1 lg:ml-[228px]">{children}</main>
     </div>
   );
 }

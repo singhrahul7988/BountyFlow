@@ -66,15 +66,15 @@ export function AdminNotificationsView() {
   }
 
   return (
-    <section className="p-6 md:p-8 xl:p-10">
+    <section className="p-5 md:p-6 xl:p-7">
       <div className="space-y-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-4">
+          <div className="space-y-3">
             <p className="bf-label text-primary">OWNER INBOX</p>
-            <h1 className="bf-display text-[2.7rem] leading-none tracking-tightHeading sm:text-[3.9rem]">
+            <h1 className="bf-display text-[2.3rem] leading-none tracking-tightHeading sm:text-[3.3rem]">
               NOTIFICATIONS
             </h1>
-            <p className="max-w-3xl text-[0.95rem] leading-8 text-muted">
+            <p className="max-w-3xl text-[0.84rem] leading-7 text-muted">
               Critical scoring alerts, dispute escalations, and treasury events are grouped here
               for fast owner action.
             </p>
@@ -90,19 +90,19 @@ export function AdminNotificationsView() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          <article className="bg-surface-high p-5">
+          <article className="bg-surface-high p-4">
             <p className="bf-label">UNREAD</p>
-            <p className="bf-data mt-3 text-[1.75rem] text-primary">{unreadCount}</p>
+            <p className="bf-data mt-3 text-[1.5rem] text-primary">{unreadCount}</p>
           </article>
-          <article className="bg-surface-high p-5">
+          <article className="bg-surface-high p-4">
             <p className="bf-label">TODAY</p>
-            <p className="bf-data mt-3 text-[1.75rem] text-foreground">
+            <p className="bf-data mt-3 text-[1.5rem] text-foreground">
               {grouped.find((entry) => entry.group === "TODAY")?.items.length ?? 0}
             </p>
           </article>
-          <article className="bg-surface-high p-5">
+          <article className="bg-surface-high p-4">
             <p className="bf-label">OPEN ACTIONS</p>
-            <p className="bf-data mt-3 text-[1.75rem] text-amber">
+            <p className="bf-data mt-3 text-[1.5rem] text-amber">
               {items.filter((item) => item.actionHref).length}
             </p>
           </article>
@@ -118,7 +118,7 @@ export function AdminNotificationsView() {
                   {groupItems.map((item) => (
                     <article
                       key={item.id}
-                      className={`relative border-l-[3px] p-5 md:p-6 ${
+                      className={`relative border-l-[3px] p-4 md:p-5 ${
                         item.unread
                           ? toneStyles[item.type]
                           : "border-transparent bg-surface-low"
@@ -142,7 +142,7 @@ export function AdminNotificationsView() {
                           >
                             {item.title}
                           </p>
-                          <p className="max-w-3xl text-[0.86rem] leading-7 text-muted">
+                          <p className="max-w-3xl text-[0.8rem] leading-6 text-muted">
                             {item.description}
                           </p>
                           <p className="bf-data text-[0.72rem] text-muted">{item.timestamp}</p>

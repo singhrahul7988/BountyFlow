@@ -7,14 +7,14 @@ export function AdminSettingsView() {
   const updateOwnerSettings = useDemoDataStore((state) => state.updateOwnerSettings);
 
   return (
-    <section className="p-6 md:p-8 xl:p-10">
+    <section className="p-5 md:p-6 xl:p-7">
       <div className="space-y-8">
-        <div className="space-y-4">
+        <div className="space-y-3">
           <p className="bf-label text-primary">PROGRAM SETTINGS</p>
-          <h1 className="bf-display text-[2.7rem] leading-none tracking-tightHeading sm:text-[3.9rem]">
+          <h1 className="bf-display text-[2.3rem] leading-none tracking-tightHeading sm:text-[3.3rem]">
             SETTINGS
           </h1>
-          <p className="max-w-3xl text-[0.95rem] leading-8 text-muted">
+          <p className="max-w-3xl text-[0.84rem] leading-7 text-muted">
             Configure review thresholds, response expectations, treasury automation, and owner-side
             alerts for the active program.
           </p>
@@ -22,10 +22,10 @@ export function AdminSettingsView() {
 
         <div className="grid gap-6 xl:grid-cols-[1fr_0.95fr]">
           <section className="space-y-6">
-            <div className="space-y-5 bg-surface-high p-6 md:p-8">
+            <div className="space-y-5 bg-surface-high p-5 md:p-6">
               <div className="space-y-2">
                 <p className="bf-label text-primary">PROGRAM CONTROL</p>
-                <h2 className="bf-display text-[1.6rem] leading-none tracking-tightHeading">
+                <h2 className="bf-display text-[1.35rem] leading-none tracking-tightHeading">
                   OPERATING MODE
                 </h2>
               </div>
@@ -36,14 +36,14 @@ export function AdminSettingsView() {
                     key={mode}
                     type="button"
                     onClick={() => updateOwnerSettings({ programStatus: mode })}
-                    className={`p-5 text-left transition-colors duration-100 ease-linear ${
+                    className={`p-4 text-left transition-colors duration-100 ease-linear ${
                       settings.programStatus === mode
                         ? "bg-background text-primary"
                         : "bg-background/60 text-muted hover:bg-background"
                     }`}
                   >
                     <p className="bf-label">{mode}</p>
-                    <p className="mt-3 text-sm leading-7 text-muted">
+                    <p className="mt-3 text-[0.8rem] leading-6 text-muted">
                       {mode === "ACTIVE"
                         ? "Program accepts new reports and runs the normal owner review flow."
                         : "Program stays visible but pauses new operational processing for owners."}
@@ -53,10 +53,10 @@ export function AdminSettingsView() {
               </div>
             </div>
 
-            <div className="space-y-5 bg-surface-high p-6 md:p-8">
+            <div className="space-y-5 bg-surface-high p-5 md:p-6">
               <div className="space-y-2">
                 <p className="bf-label text-primary">AI THRESHOLDS</p>
-                <h2 className="bf-display text-[1.6rem] leading-none tracking-tightHeading">
+                <h2 className="bf-display text-[1.35rem] leading-none tracking-tightHeading">
                   TRIAGE POLICY
                 </h2>
               </div>
@@ -124,10 +124,10 @@ export function AdminSettingsView() {
           </section>
 
           <section className="space-y-6">
-            <div className="space-y-5 bg-surface-high p-6 md:p-8">
+            <div className="space-y-5 bg-surface-high p-5 md:p-6">
               <div className="space-y-2">
                 <p className="bf-label text-primary">DISPUTE + TREASURY</p>
-                <h2 className="bf-display text-[1.6rem] leading-none tracking-tightHeading">
+                <h2 className="bf-display text-[1.35rem] leading-none tracking-tightHeading">
                   AUTOMATION RULES
                 </h2>
               </div>
@@ -183,7 +183,7 @@ export function AdminSettingsView() {
                         [item.key]: !item.value
                       } as Partial<typeof settings>)
                     }
-                    className="flex items-center justify-between gap-4 bg-background p-4 text-left"
+                    className="flex items-center justify-between gap-4 bg-background p-3.5 text-left"
                   >
                     <span className="bf-label text-foreground">{item.label}</span>
                     <span className={`bf-label ${item.value ? "text-primary" : "text-muted"}`}>
@@ -194,10 +194,10 @@ export function AdminSettingsView() {
               </div>
             </div>
 
-            <div className="space-y-5 bg-surface-high p-6 md:p-8">
+            <div className="space-y-5 bg-surface-high p-5 md:p-6">
               <div className="space-y-2">
                 <p className="bf-label text-primary">OWNER CONTACT</p>
-                <h2 className="bf-display text-[1.6rem] leading-none tracking-tightHeading">
+                <h2 className="bf-display text-[1.35rem] leading-none tracking-tightHeading">
                   SECURITY CHANNEL
                 </h2>
               </div>
@@ -216,7 +216,7 @@ export function AdminSettingsView() {
 
               <div className="border border-primary/20 bg-background p-4">
                 <p className="bf-label text-primary">LIVE CONFIG SNAPSHOT</p>
-                <div className="mt-4 space-y-2 text-sm leading-7 text-muted">
+                <div className="mt-4 space-y-2 text-[0.8rem] leading-6 text-muted">
                   <p>PROGRAM STATUS: {settings.programStatus}</p>
                   <p>AI NOTIFY THRESHOLD: {settings.notifyThreshold.toFixed(1)}</p>
                   <p>AUTO-REJECT BELOW: {settings.autoRejectBelow.toFixed(1)}</p>

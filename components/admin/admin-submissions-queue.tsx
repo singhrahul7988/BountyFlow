@@ -229,26 +229,26 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
   }
 
   return (
-    <section className="p-6 md:p-8 xl:p-10">
+    <section className="p-5 md:p-6 xl:p-7">
       <div className="space-y-8">
-        <div className="space-y-4">
+        <div className="space-y-3">
           <p className="bf-label text-primary">ADMIN QUEUE</p>
-          <h1 className="bf-display text-[2.7rem] leading-none tracking-tightHeading sm:text-[3.9rem]">
+          <h1 className="bf-display text-[2.3rem] leading-none tracking-tightHeading sm:text-[3.3rem]">
             SUBMISSIONS
           </h1>
         </div>
 
         {criticalSubmission && !dismissedCriticalBanner ? (
-          <div className="flex flex-col gap-4 border-l-[4px] border-danger bg-danger/5 p-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-4 border-l-[4px] border-danger bg-danger/5 p-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">
               <span className="h-2.5 w-2.5 animate-pulse-dot bg-danger" />
               <p className="font-mono text-[0.78rem] uppercase tracking-label text-danger">
                 CRITICAL FINDING | SCORE {criticalSubmission.aiScore.toFixed(1)}
               </p>
             </div>
-            <p className="max-w-3xl text-sm leading-7 text-foreground">
-              {criticalSubmission.title} | {criticalSubmission.summaryRisk}
-            </p>
+              <p className="max-w-3xl text-[0.82rem] leading-6 text-foreground">
+                {criticalSubmission.title} | {criticalSubmission.summaryRisk}
+              </p>
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -269,14 +269,14 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
           </div>
         ) : null}
 
-        <div className="grid gap-5 bg-surface-high p-6 xl:grid-cols-[1.35fr_0.55fr_0.7fr]">
+        <div className="grid gap-5 bg-surface-high p-5 xl:grid-cols-[1.35fr_0.55fr_0.7fr]">
           <div className="flex flex-wrap gap-6 border-b border-outline-variant/15 pb-3 xl:border-0 xl:pb-0">
             {filterTabs.map((filterValue) => (
               <button
                 key={filterValue}
                 type="button"
                 onClick={() => setActiveFilter(filterValue)}
-                className={`border-b-2 pb-3 font-mono text-[0.78rem] uppercase tracking-label transition-colors duration-100 ease-linear ${
+                className={`border-b-2 pb-3 font-mono text-[0.72rem] uppercase tracking-label transition-colors duration-100 ease-linear ${
                   activeFilter === filterValue
                     ? "border-primary text-primary"
                     : "border-transparent text-muted hover:text-foreground"
@@ -325,7 +325,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
             return (
               <article
                 key={submission.id}
-                className={`space-y-6 bg-surface-high p-6 md:p-7 ${
+                  className={`space-y-5 bg-surface-high p-5 md:p-6 ${
                   submission.aiScore >= 9
                     ? "border border-danger/30 shadow-[0_0_12px_rgba(110,255,192,0.1)]"
                     : currentStatus === "DISPUTE OPEN"
@@ -343,7 +343,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                       href={`/admin/submissions/${submission.id}`}
                       className="inline-block transition-colors duration-100 ease-linear hover:text-primary"
                     >
-                      <h2 className="bf-display text-[1.5rem] leading-none tracking-tightHeading">
+                      <h2 className="bf-display text-[1.32rem] leading-none tracking-tightHeading">
                         {submission.title}
                       </h2>
                     </Link>
@@ -388,7 +388,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                     <div className="grid gap-4 md:grid-cols-[auto_1fr_auto] md:items-start">
                       <div className="space-y-2">
                         <p className="bf-label">AI SCORE</p>
-                        <p className={`bf-data text-[2rem] ${scoreTone(submission.aiScore)}`}>
+                      <p className={`bf-data text-[1.65rem] ${scoreTone(submission.aiScore)}`}>
                           {submission.aiScore.toFixed(1)}
                         </p>
                       </div>
@@ -409,7 +409,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
 
                       <div className="space-y-2 justify-self-start md:justify-self-end">
                         <p className="bf-label">RECOMMENDED</p>
-                        <p className="bf-data text-[1rem] text-primary">
+                        <p className="bf-data text-[0.9rem] text-primary">
                           {formatCurrency(recommendedAmount(submission, submission.recommendedPct), 0)}{" "}
                           USDT ({submission.recommendedPct}%)
                         </p>
@@ -420,7 +420,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                       {submission.evidencePills.map((pill) => (
                         <span
                           key={pill}
-                          className="bg-background px-3 py-2 font-mono text-[0.72rem] uppercase tracking-label text-muted"
+                              className="bg-background px-2.5 py-1.5 font-mono text-[0.66rem] uppercase tracking-label text-muted"
                         >
                           {pill}
                         </span>
@@ -458,13 +458,13 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                   <div className="space-y-6">
                     <div className="space-y-4 bg-background p-5">
                       <p className="bf-label">FULL DESCRIPTION</p>
-                      <p className="text-sm leading-8 text-muted">{submission.description}</p>
+                      <p className="text-[0.82rem] leading-7 text-muted">{submission.description}</p>
                     </div>
 
                     <div className="grid gap-6 xl:grid-cols-2">
                       <div className="space-y-4 bg-background p-5">
                         <p className="bf-label">REPRODUCTION STEPS</p>
-                        <ol className="space-y-2 font-mono text-sm leading-8 text-muted">
+                          <ol className="space-y-2 font-mono text-[0.82rem] leading-7 text-muted">
                           {submission.stepsToReproduce.map((step, index) => (
                             <li key={step}>
                               {index + 1}. {step}
@@ -475,13 +475,13 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
 
                       <div className="space-y-4 bg-background p-5">
                         <p className="bf-label">IMPACT ASSESSMENT</p>
-                        <p className="text-sm leading-8 text-muted">
+                          <p className="text-[0.82rem] leading-7 text-muted">
                           {submission.impactAssessment}
                         </p>
                         {submission.internalNote ? (
                           <div className="bg-surface-high p-4">
                             <p className="bf-label text-primary">INTERNAL NOTE</p>
-                            <p className="mt-2 text-sm leading-7 text-muted">
+                            <p className="mt-2 text-[0.8rem] leading-6 text-muted">
                               {submission.internalNote}
                             </p>
                           </div>
@@ -498,7 +498,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                             onClick={() =>
                               setEvidenceTabById((current) => ({ ...current, [submission.id]: tab }))
                             }
-                            className={`border-b-2 pb-3 font-mono text-[0.78rem] uppercase tracking-label transition-colors duration-100 ease-linear ${
+                            className={`border-b-2 pb-3 font-mono text-[0.72rem] uppercase tracking-label transition-colors duration-100 ease-linear ${
                               activeEvidenceTab === tab
                                 ? "border-primary text-primary"
                                 : "border-transparent text-muted hover:text-foreground"
@@ -512,7 +512,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                       </div>
 
                       {activeEvidenceTab === "POC CODE" ? (
-                        <pre className="overflow-x-auto bg-surface-container-highest p-5 font-mono text-xs leading-7 text-muted">
+                        <pre className="overflow-x-auto bg-surface-container-highest p-4 font-mono text-[0.72rem] leading-6 text-muted">
                           <code>{submission.codeSnippet}</code>
                         </pre>
                       ) : null}
@@ -526,7 +526,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                           {submission.screenshots.map((shot) => (
                             <div key={shot} className="bg-background p-5">
                               <p className="bf-label text-primary">SCREENSHOT</p>
-                              <p className="mt-3 text-sm leading-7 text-muted">{shot}</p>
+                              <p className="mt-3 text-[0.8rem] leading-6 text-muted">{shot}</p>
                             </div>
                           ))}
                         </div>
@@ -535,7 +535,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                       {activeEvidenceTab === "GITHUB" ? (
                         <div className="bg-background p-5">
                           <p className="bf-label text-primary">GITHUB METADATA</p>
-                          <div className="mt-4 space-y-2 text-sm leading-7 text-muted">
+                          <div className="mt-4 space-y-2 text-[0.8rem] leading-6 text-muted">
                             <p>REPO: {submission.github.repo}</p>
                             <p>BRANCH: {submission.github.branch}</p>
                             <p>UPDATED: {submission.github.updatedAt}</p>
@@ -545,7 +545,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                       ) : null}
                     </div>
 
-                    <div className="space-y-5 bg-background p-5 md:p-6">
+                    <div className="space-y-5 bg-background p-4 md:p-5">
                       <p className="bf-label text-primary">PAYOUT DECISION</p>
                       <div className="grid gap-6 xl:grid-cols-[0.72fr_0.28fr] xl:items-end">
                         <div className="space-y-4">
@@ -575,8 +575,8 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                         </div>
 
                         <div className="space-y-2">
-                          <p className="bf-data text-[2rem] text-primary">{payoutPct}%</p>
-                          <p className="bf-data text-[1rem] text-primary">
+                          <p className="bf-data text-[1.7rem] text-primary">{payoutPct}%</p>
+                          <p className="bf-data text-[0.9rem] text-primary">
                             {formatCurrency(payoutAmount, 0)} USDT
                           </p>
                         </div>

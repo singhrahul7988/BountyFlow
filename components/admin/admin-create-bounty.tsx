@@ -241,26 +241,26 @@ export function AdminCreateBounty() {
   }
 
   return (
-    <section className="p-6 md:p-8 xl:p-10">
-      <div className="grid gap-8 xl:grid-cols-[1.12fr_0.88fr] xl:items-start">
+    <section className="p-5 md:p-6 xl:p-7">
+      <div className="grid gap-6 xl:grid-cols-[1.12fr_0.88fr] xl:items-start">
         <div className="space-y-8">
-          <div className="space-y-4">
+          <div className="space-y-3">
             <p className="bf-label text-primary">PROGRAM CREATION</p>
-            <h1 className="bf-display text-[2.7rem] leading-none tracking-tightHeading sm:text-[3.9rem]">
+            <h1 className="bf-display text-[2.3rem] leading-none tracking-tightHeading sm:text-[3.3rem]">
               CREATE
               <span className="block">BOUNTY</span>
             </h1>
-            <p className="max-w-3xl text-[0.95rem] leading-8 text-muted">
+            <p className="max-w-3xl text-[0.84rem] leading-7 text-muted">
               Configure the bounty, reward tiers, and AI routing thresholds, then arm escrow for a
               live launch.
             </p>
           </div>
 
-          <div className="space-y-8 bg-surface-high p-6 md:p-8">
+          <div className="space-y-7 bg-surface-high p-5 md:p-6">
             <section className="space-y-5">
               <div className="space-y-2">
                 <p className="bf-label text-primary">SECTION 1</p>
-                <h2 className="bf-display text-[1.7rem] leading-none tracking-tightHeading">
+                <h2 className="bf-display text-[1.38rem] leading-none tracking-tightHeading">
                   BOUNTY DETAILS
                 </h2>
               </div>
@@ -335,7 +335,7 @@ export function AdminCreateBounty() {
             <section className="space-y-5">
               <div className="space-y-2">
                 <p className="bf-label text-primary">SECTION 2</p>
-                <h2 className="bf-display text-[1.7rem] leading-none tracking-tightHeading">
+                <h2 className="bf-display text-[1.38rem] leading-none tracking-tightHeading">
                   REWARD TIERS
                 </h2>
               </div>
@@ -373,11 +373,11 @@ export function AdminCreateBounty() {
               <div className="flex flex-col gap-3 bg-background p-5 sm:flex-row sm:items-end sm:justify-between">
                 <div className="space-y-2">
                   <p className="bf-label">TOTAL ESCROW REQUIRED</p>
-                  <p className="bf-data text-[1.9rem] text-primary">
+                  <p className="bf-data text-[1.65rem] text-primary">
                     {formatCurrency(totalDeposit, 0)} USDT
                   </p>
                 </div>
-                <p className="max-w-md text-[0.8rem] leading-7 text-muted">
+                <p className="max-w-md text-[0.76rem] leading-6 text-muted">
                   Total updates live as reward tiers change so the owner can fund the exact pool at
                   launch time.
                 </p>
@@ -388,7 +388,7 @@ export function AdminCreateBounty() {
               <div className="flex items-center justify-between gap-4">
                 <div className="space-y-2">
                   <p className="bf-label text-primary">SECTION 3</p>
-                  <h2 className="bf-display text-[1.7rem] leading-none tracking-tightHeading">
+                  <h2 className="bf-display text-[1.38rem] leading-none tracking-tightHeading">
                     AI EVALUATION SETTINGS
                   </h2>
                 </div>
@@ -459,7 +459,7 @@ export function AdminCreateBounty() {
             <section className="space-y-5">
               <div className="space-y-2">
                 <p className="bf-label text-primary">SECTION 4</p>
-                <h2 className="bf-display text-[1.7rem] leading-none tracking-tightHeading">
+                <h2 className="bf-display text-[1.38rem] leading-none tracking-tightHeading">
                   FUND ESCROW
                 </h2>
               </div>
@@ -467,10 +467,10 @@ export function AdminCreateBounty() {
               <div className="grid gap-5 bg-background p-5 md:grid-cols-[1fr_0.95fr]">
                 <div className="space-y-4">
                   <p className="bf-label">YOU WILL DEPOSIT</p>
-                  <p className="bf-data text-[2.1rem] text-primary">
+                  <p className="bf-data text-[1.7rem] text-primary">
                     {formatCurrency(totalDeposit, 0)} USDT
                   </p>
-                  <p className="text-[0.84rem] leading-7 text-muted">
+                  <p className="text-[0.8rem] leading-6 text-muted">
                     Idle funds earn yield on Aave V3 while the bounty is live and not fully
                     reserved.
                   </p>
@@ -493,7 +493,7 @@ export function AdminCreateBounty() {
               </div>
 
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <p className="max-w-2xl text-[0.8rem] leading-7 text-muted">
+                <p className="max-w-2xl text-[0.76rem] leading-6 text-muted">
                   Funding arms the escrow pool for this bounty and updates the persisted treasury
                   flow used by the owner review lifecycle.
                 </p>
@@ -511,19 +511,19 @@ export function AdminCreateBounty() {
               {isPublished ? (
                 <div className="border border-primary/25 bg-primary/10 p-4">
                   <p className="bf-label text-primary">PROGRAM ARMED</p>
-                  <p className="mt-2 text-[0.86rem] leading-7 text-foreground">
+                  <p className="mt-2 text-[0.8rem] leading-6 text-foreground">
                     The bounty preview is now in live mode for the demo. Share slug:
                     <span className="ml-2 bf-data text-primary">{previewUrl}</span>
                   </p>
                 </div>
               ) : null}
-              {publishError ? <p className="text-[0.8rem] leading-7 text-amber">{publishError}</p> : null}
+              {publishError ? <p className="text-[0.76rem] leading-6 text-amber">{publishError}</p> : null}
             </section>
           </div>
         </div>
 
         <aside className="space-y-6 xl:sticky xl:top-8">
-          <div className="space-y-4 bg-surface-high p-6">
+          <div className="space-y-4 bg-surface-high p-5">
             <div className="flex items-center justify-between gap-4">
               <p className="bf-label text-primary">LIVE PREVIEW</p>
               <span className="bf-label text-muted">{isPublished ? "LIVE MODE" : "DRAFT MODE"}</span>
@@ -541,7 +541,7 @@ export function AdminCreateBounty() {
 
               <div className="space-y-2">
                 <p className="bf-label">IN SCOPE</p>
-                <p className="text-[0.8rem] leading-7 text-muted">{form.scope}</p>
+                <p className="text-[0.76rem] leading-6 text-muted">{form.scope}</p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
