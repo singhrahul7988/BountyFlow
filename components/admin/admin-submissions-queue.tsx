@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { TerminalSelect } from "@/components/ui/terminal-select";
 import { adminSubmissions, type AdminSubmission } from "@/lib/admin-submissions-data";
+import { useDemoDataStore } from "@/lib/stores/demo-data-store";
 import { formatCurrency, truncateAddress } from "@/lib/utils";
 import { StatusChip } from "../home/status-chip";
 
@@ -36,22 +38,17 @@ function recommendedAmount(submission: AdminSubmission, payoutPct: number) {
 }
 
 export function AdminSubmissionsQueue() {
+  const submissionDecisions = useDemoDataStore((state) => state.submissionDecisions);
+  const setSubmissionPayoutPct = useDemoDataStore((state) => state.setSubmissionPayoutPct);
+  const applySubmissionDecision = useDemoDataStore((state) => state.applySubmissionDecision);
   const [activeFilter, setActiveFilter] = useState<FilterValue>("ALL");
   const [sortBy, setSortBy] = useState<SortValue>("NEWEST");
   const [searchQuery, setSearchQuery] = useState("");
   const [dismissedCriticalBanner, setDismissedCriticalBanner] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(adminSubmissions[0]?.id ?? null);
   const [evidenceTabById, setEvidenceTabById] = useState<Record<string, EvidenceTab>>({});
-  const [payoutPctById, setPayoutPctById] = useState<Record<string, number>>(
-    Object.fromEntries(
-      adminSubmissions.map((submission) => [submission.id, submission.recommendedPct])
-    )
-  );
   const [rejectionModeById, setRejectionModeById] = useState<Record<string, boolean>>({});
   const [rejectionReasonById, setRejectionReasonById] = useState<Record<string, string>>({});
-  const [statusById, setStatusById] = useState<Record<string, AdminSubmission["status"]>>(
-    Object.fromEntries(adminSubmissions.map((submission) => [submission.id, submission.status]))
-  );
 
   const criticalSubmission = adminSubmissions.find((submission) => submission.aiScore >= 9);
 
@@ -65,7 +62,9 @@ export function AdminSubmissionsQueue() {
 
         if (filterValue === "NEEDS ACTION") {
           accumulator[filterValue] = adminSubmissions.filter((submission) =>
-            ["AI SCORED", "UNDER REVIEW", "DISPUTE OPEN"].includes(statusById[submission.id])
+            ["AI SCORED", "UNDER REVIEW", "DISPUTE OPEN"].includes(
+              submissionDecisions[submission.id]?.status ?? submission.status
+            )
           ).length;
           return accumulator;
         }
@@ -83,13 +82,13 @@ export function AdminSubmissionsQueue() {
         "NEEDS ACTION": 0
       }
     );
-  }, [statusById]);
+  }, [submissionDecisions]);
 
   const visibleSubmissions = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
     const filtered = adminSubmissions.filter((submission) => {
-      const currentStatus = statusById[submission.id];
+      const currentStatus = submissionDecisions[submission.id]?.status ?? submission.status;
       const matchesFilter =
         activeFilter === "ALL" ||
         (activeFilter === "NEEDS ACTION"
@@ -117,28 +116,44 @@ export function AdminSubmissionsQueue() {
 
       if (sortBy === "RECOMMENDED_PAYOUT") {
         return (
-          recommendedAmount(right, payoutPctById[right.id] ?? right.recommendedPct) -
-          recommendedAmount(left, payoutPctById[left.id] ?? left.recommendedPct)
+          recommendedAmount(
+            right,
+            submissionDecisions[right.id]?.payoutPct ?? right.recommendedPct
+          ) -
+          recommendedAmount(
+            left,
+            submissionDecisions[left.id]?.payoutPct ?? left.recommendedPct
+          )
         );
       }
 
       return adminSubmissions.findIndex((item) => item.id === left.id) -
         adminSubmissions.findIndex((item) => item.id === right.id);
     });
-  }, [activeFilter, payoutPctById, searchQuery, sortBy, statusById]);
+  }, [activeFilter, searchQuery, sortBy, submissionDecisions]);
 
   function handleApprove(submissionId: string) {
-    setStatusById((current) => ({ ...current, [submissionId]: "UNDER REVIEW" }));
+    applySubmissionDecision(submissionId, {
+      status: "DISPUTE WINDOW",
+      payoutPct: submissionDecisions[submissionId]?.payoutPct ?? adminSubmissions.find((item) => item.id === submissionId)?.recommendedPct ?? 0
+    });
     setRejectionModeById((current) => ({ ...current, [submissionId]: false }));
   }
 
   function handleManualReview(submissionId: string) {
-    setStatusById((current) => ({ ...current, [submissionId]: "UNDER REVIEW" }));
+    applySubmissionDecision(submissionId, {
+      status: "UNDER REVIEW",
+      payoutPct: submissionDecisions[submissionId]?.payoutPct ?? adminSubmissions.find((item) => item.id === submissionId)?.recommendedPct ?? 0
+    });
     setRejectionModeById((current) => ({ ...current, [submissionId]: false }));
   }
 
   function handleReject(submissionId: string) {
-    setStatusById((current) => ({ ...current, [submissionId]: "FIX IN PROGRESS" }));
+    applySubmissionDecision(submissionId, {
+      status: "REJECTED",
+      payoutPct: submissionDecisions[submissionId]?.payoutPct ?? adminSubmissions.find((item) => item.id === submissionId)?.recommendedPct ?? 0,
+      rejectionReason: rejectionReasonById[submissionId] ?? ""
+    });
     setRejectionModeById((current) => ({ ...current, [submissionId]: false }));
   }
 
@@ -227,9 +242,9 @@ export function AdminSubmissionsQueue() {
 
         <div className="space-y-6">
           {visibleSubmissions.map((submission) => {
-            const currentStatus = statusById[submission.id];
+            const currentStatus = submissionDecisions[submission.id]?.status ?? submission.status;
             const isExpanded = expandedId === submission.id;
-            const payoutPct = payoutPctById[submission.id] ?? submission.recommendedPct;
+            const payoutPct = submissionDecisions[submission.id]?.payoutPct ?? submission.recommendedPct;
             const payoutAmount = recommendedAmount(submission, payoutPct);
             const activeEvidenceTab = evidenceTabById[submission.id] ?? "POC CODE";
             const showRejectionBox = rejectionModeById[submission.id] ?? false;
@@ -251,9 +266,14 @@ export function AdminSubmissionsQueue() {
                       <StatusChip status={submission.severity} />
                       <span className="bf-label text-muted">#{submission.id}</span>
                     </div>
-                    <h2 className="bf-display text-[1.5rem] leading-none tracking-tightHeading">
-                      {submission.title}
-                    </h2>
+                    <Link
+                      href={`/admin/submissions/${submission.id}`}
+                      className="inline-block transition-colors duration-100 ease-linear hover:text-primary"
+                    >
+                      <h2 className="bf-display text-[1.5rem] leading-none tracking-tightHeading">
+                        {submission.title}
+                      </h2>
+                    </Link>
                     <p className="bf-data text-[0.82rem] text-muted">
                       {truncateAddress(submission.reporterAddress)} | Rep:{" "}
                       {submission.reporterReputation.toFixed(1)} | {submission.submittedAt}
@@ -261,6 +281,12 @@ export function AdminSubmissionsQueue() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3">
+                    <Link
+                      href={`/admin/submissions/${submission.id}`}
+                      className="bf-button-tertiary px-4 py-3 text-primary"
+                    >
+                      FULL PAGE
+                    </Link>
                     <button
                       type="button"
                       onClick={() =>
@@ -447,10 +473,7 @@ export function AdminSubmissionsQueue() {
                             step={10}
                             value={payoutPct}
                             onChange={(event) =>
-                              setPayoutPctById((current) => ({
-                                ...current,
-                                [submission.id]: Number(event.target.value)
-                              }))
+                              setSubmissionPayoutPct(submission.id, Number(event.target.value))
                             }
                             className="h-2 w-full accent-[var(--primary-container)]"
                           />
@@ -459,12 +482,7 @@ export function AdminSubmissionsQueue() {
                               <button
                                 key={quickValue}
                                 type="button"
-                                onClick={() =>
-                                  setPayoutPctById((current) => ({
-                                    ...current,
-                                    [submission.id]: quickValue
-                                  }))
-                                }
+                                onClick={() => setSubmissionPayoutPct(submission.id, quickValue)}
                                 className="bf-button-secondary px-3 py-2"
                               >
                                 {quickValue}%

@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 
-import { getAuthHref } from "@/lib/auth";
 import type { BountyDetail } from "@/lib/bounty-data";
 import { BountyCard } from "@/components/home/bounty-card";
 import { TerminalSelect } from "@/components/ui/terminal-select";
@@ -122,7 +121,7 @@ export function BountiesExplorer({ items }: { items: BountyDetail[] }) {
           <BountyCard
             key={item.id}
             slug={item.slug}
-            href={getAuthHref("researcher", `/bounty/${item.slug}`)}
+            href={`/bounty/${item.slug}`}
             title={item.title}
             platform={item.platform}
             rewardPool={item.rewardPool}

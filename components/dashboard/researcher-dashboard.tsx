@@ -6,10 +6,9 @@ import { useMemo, useState } from "react";
 import { BountyCard } from "@/components/home/bounty-card";
 import { bounties } from "@/lib/bounty-data";
 import {
-  dashboardSummary,
-  payoutHistory,
+  type DashboardSummary,
+  type PayoutHistoryEntry,
   type ResearcherSubmission,
-  researcherSubmissions,
   reputationBreakdown
 } from "@/lib/dashboard-data";
 import { leaderboardRows } from "@/lib/mock-data";
@@ -24,8 +23,17 @@ function getFilterBucket(status: ResearcherSubmission["status"]) {
     return "ACTIVE";
   }
 
-  if (status === "AI SCORED" || status === "UNDER REVIEW") {
+  if (
+    status === "AI SCORED" ||
+    status === "UNDER REVIEW" ||
+    status === "DISPUTE WINDOW" ||
+    status === "DISPUTE OPEN"
+  ) {
     return "UNDER REVIEW";
+  }
+
+  if (status === "REJECTED") {
+    return "REJECTED";
   }
 
   return "RESOLVED";
@@ -59,7 +67,15 @@ function getActionLabel(submission: ResearcherSubmission) {
   return "VIEW DETAILS ->";
 }
 
-export function ResearcherDashboard() {
+export function ResearcherDashboard({
+  submissions,
+  summary,
+  payoutHistory
+}: {
+  submissions: ResearcherSubmission[];
+  summary: DashboardSummary;
+  payoutHistory: PayoutHistoryEntry[];
+}) {
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>("ALL");
   const { currentUser, hasHydrated } = useAppStore();
   const featuredBounties = bounties.slice(0, 3);
@@ -69,16 +85,11 @@ export function ResearcherDashboard() {
     return filters.reduce<Record<(typeof filters)[number], number>>(
       (accumulator, filterValue) => {
         if (filterValue === "ALL") {
-          accumulator[filterValue] = researcherSubmissions.length;
+          accumulator[filterValue] = submissions.length;
           return accumulator;
         }
 
-        if (filterValue === "REJECTED") {
-          accumulator[filterValue] = 0;
-          return accumulator;
-        }
-
-        accumulator[filterValue] = researcherSubmissions.filter(
+        accumulator[filterValue] = submissions.filter(
           (submission) => getFilterBucket(submission.status) === filterValue
         ).length;
 
@@ -92,23 +103,19 @@ export function ResearcherDashboard() {
         REJECTED: 0
       }
     );
-  }, []);
+  }, [submissions]);
 
   const visibleSubmissions = useMemo(() => {
     if (activeFilter === "ALL") {
-      return researcherSubmissions;
+      return submissions;
     }
 
-    if (activeFilter === "REJECTED") {
-      return [];
-    }
-
-    return researcherSubmissions.filter(
+    return submissions.filter(
       (submission) => getFilterBucket(submission.status) === activeFilter
     );
-  }, [activeFilter]);
+  }, [activeFilter, submissions]);
 
-  const reputationProgress = `${Math.min(100, dashboardSummary.reputationScore * 10)}%`;
+  const reputationProgress = `${Math.min(100, summary.reputationScore * 10)}%`;
   const totalReceived = payoutHistory.reduce((total, entry) => total + entry.amount, 0);
 
   return (
@@ -148,27 +155,26 @@ export function ResearcherDashboard() {
           <article className="space-y-4 bg-surface-high p-6">
             <p className="bf-label">TOTAL EARNED</p>
             <p className="bf-data text-[2.3rem] text-primary">
-              {formatCurrency(dashboardSummary.totalEarned, 0)}
+              {formatCurrency(summary.totalEarned, 0)}
             </p>
             <p className="text-sm leading-7 text-muted">USDT settled from verified on-chain payouts.</p>
           </article>
 
           <article className="space-y-4 bg-surface-high p-6">
             <p className="bf-label">SUBMISSIONS</p>
-            <p className="bf-data text-[2.3rem] text-foreground">{dashboardSummary.submissions}</p>
+            <p className="bf-data text-[2.3rem] text-foreground">{summary.submissions}</p>
             <p className="text-sm leading-7 text-muted">
-              {dashboardSummary.active} ACTIVE | {dashboardSummary.review} REVIEW |{" "}
-              {dashboardSummary.resolved} RESOLVED
+              {summary.active} ACTIVE | {summary.review} REVIEW | {summary.resolved} RESOLVED
             </p>
           </article>
 
           <article className="space-y-4 bg-surface-high p-6">
             <p className="bf-label">REPUTATION SCORE</p>
             <p className="bf-data text-[2.3rem] text-primary">
-              {dashboardSummary.reputationScore} / 10
+              {summary.reputationScore} / 10
             </p>
             <div className="space-y-2">
-              <p className="text-sm leading-7 text-muted">{dashboardSummary.reputationPercentile}</p>
+              <p className="text-sm leading-7 text-muted">{summary.reputationPercentile}</p>
               <div className="h-[6px] bg-background">
                 <div className="h-full bg-primary-gradient" style={{ width: reputationProgress }} />
               </div>
@@ -177,8 +183,8 @@ export function ResearcherDashboard() {
 
           <article className="space-y-4 bg-surface-high p-6">
             <p className="bf-label">AVG. AI SCORE</p>
-            <p className="bf-data text-[2.3rem] text-foreground">{dashboardSummary.averageAiScore}</p>
-            <p className="text-sm leading-7 text-primary">{dashboardSummary.averageAiScoreDelta}</p>
+            <p className="bf-data text-[2.3rem] text-foreground">{summary.averageAiScore}</p>
+            <p className="text-sm leading-7 text-primary">{summary.averageAiScoreDelta}</p>
           </article>
         </div>
 

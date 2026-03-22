@@ -52,6 +52,9 @@ export function SubmissionDetailView({ submission }: { submission: ResearcherSub
               <p className="bf-data mt-3 text-[1.2rem] text-primary">
                 {submission.payout > 0 ? `${formatCurrency(submission.payout, 0)} USDT` : "--"}
               </p>
+              {submission.responseEta ? (
+                <p className="bf-label mt-2 text-muted">{submission.responseEta}</p>
+              ) : null}
             </div>
             <div className="bg-surface-high p-5">
               <p className="bf-label">SUBMITTED</p>

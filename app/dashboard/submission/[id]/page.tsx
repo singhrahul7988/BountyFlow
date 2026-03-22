@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { SubmissionDetailView } from "@/components/dashboard/submission-detail-view";
+import { ResearcherSubmissionDetailResolver } from "@/components/dashboard/researcher-submission-detail-resolver";
 import { Navbar } from "@/components/home/navbar";
 import { SiteFooter } from "@/components/home/site-footer";
 import { getResearcherSubmissionById } from "@/lib/dashboard-data";
@@ -15,7 +15,7 @@ export default function SubmissionDetailPage({ params }: { params: { id: string 
   return (
     <main className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <SubmissionDetailView submission={submission} />
+      <ResearcherSubmissionDetailResolver submission={submission} />
       <SiteFooter />
     </main>
   );

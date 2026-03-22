@@ -6,6 +6,8 @@ export type ResearcherSubmissionStatus =
   | "UNDER REVIEW"
   | "FIX IN PROGRESS"
   | "DISPUTE WINDOW"
+  | "DISPUTE OPEN"
+  | "REJECTED"
   | "PAID";
 
 export type ResearcherSubmission = {
@@ -40,12 +42,26 @@ export type PayoutHistoryEntry = {
   isCritical?: boolean;
 };
 
-export const dashboardSummary = {
+export type DashboardSummary = {
+  totalEarned: number;
+  submissions: number;
+  active: number;
+  review: number;
+  resolved: number;
+  rejected: number;
+  reputationScore: number;
+  reputationPercentile: string;
+  averageAiScore: number;
+  averageAiScoreDelta: string;
+};
+
+export const dashboardSummary: DashboardSummary = {
   totalEarned: 14200,
   submissions: 11,
   active: 3,
   review: 2,
   resolved: 6,
+  rejected: 0,
   reputationScore: 8.6,
   reputationPercentile: "TOP 12% GLOBALLY",
   averageAiScore: 7.9,

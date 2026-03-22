@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/home/navbar";
 import { SiteFooter } from "@/components/home/site-footer";
-import { BountiesExplorer } from "@/components/bounties/bounties-explorer";
+import { BountiesExplorerShell } from "@/components/bounties/bounties-explorer-shell";
 import { bounties } from "@/lib/bounty-data";
 
 export default function BountiesPage() {
@@ -26,7 +26,7 @@ export default function BountiesPage() {
         </div>
 
         <div className="mt-10">
-          <BountiesExplorer items={bounties} />
+          <BountiesExplorerShell items={bounties} />
         </div>
       </section>
       <SiteFooter />

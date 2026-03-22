@@ -3,8 +3,10 @@ export type AdminSubmissionSeverity = "CRITICAL" | "HIGH" | "MEDIUM";
 export type AdminSubmissionStatus =
   | "AI SCORED"
   | "UNDER REVIEW"
+  | "DISPUTE WINDOW"
   | "DISPUTE OPEN"
-  | "FIX IN PROGRESS";
+  | "FIX IN PROGRESS"
+  | "REJECTED";
 
 export type AdminSubmission = {
   id: string;
@@ -278,3 +280,7 @@ export const adminSubmissions: AdminSubmission[] = [
     }
   }
 ];
+
+export function getAdminSubmissionById(id: string) {
+  return adminSubmissions.find((submission) => submission.id === id) ?? null;
+}

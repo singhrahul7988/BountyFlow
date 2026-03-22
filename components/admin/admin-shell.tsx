@@ -4,10 +4,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { adminBountyContext, adminNavBadges } from "@/lib/admin-data";
+import { adminBountyContext } from "@/lib/admin-data";
+import { adminSubmissions } from "@/lib/admin-submissions-data";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { useAppStore } from "@/lib/stores/app-store";
+import { useDemoDataStore } from "@/lib/stores/demo-data-store";
 import { cn, truncateAddress } from "@/lib/utils";
 import { Logo } from "../home/logo";
 import { StatusChip } from "../home/status-chip";
@@ -28,7 +30,6 @@ const navItems = [
   {
     label: "Submissions",
     href: "/admin/submissions",
-    badge: adminNavBadges.submissions,
     icon: (
       <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4">
         <path d="M3 3H13V13H3z" />
@@ -62,7 +63,6 @@ const navItems = [
   {
     label: "Notifications",
     href: "/admin/notifications",
-    badge: adminNavBadges.notifications,
     icon: (
       <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4">
         <path d="M8 2.5A3 3 0 0 1 11 5.5V8L12.5 10.5H3.5L5 8V5.5A3 3 0 0 1 8 2.5z" />
@@ -87,6 +87,26 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [supabase] = useState(() => (hasSupabaseEnv() ? createClient() : null));
   const { currentUser, hasHydrated, signOut } = useAppStore();
+  const submissionDecisions = useDemoDataStore((state) => state.submissionDecisions);
+  const notifications = useDemoDataStore((state) => state.notifications);
+
+  const submissionsBadge = adminSubmissions.filter((submission) =>
+    ["AI SCORED", "UNDER REVIEW", "DISPUTE OPEN"].includes(
+      submissionDecisions[submission.id]?.status ?? submission.status
+    )
+  ).length;
+
+  const notificationsBadge = notifications.filter((item) => item.unread).length;
+
+  const computedNavItems = navItems.map((item) => ({
+    ...item,
+    badge:
+      item.href === "/admin/submissions"
+        ? submissionsBadge
+        : item.href === "/admin/notifications"
+          ? notificationsBadge
+          : undefined
+  }));
 
   return (
     <div className="min-h-screen bg-background text-foreground lg:flex">
@@ -112,7 +132,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <nav className="flex flex-col">
-            {navItems.map((item) => {
+            {computedNavItems.map((item) => {
               const isActive =
                 item.href === "/admin" ? pathname === item.href : pathname.startsWith(item.href);
 
