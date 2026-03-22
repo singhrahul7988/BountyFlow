@@ -138,27 +138,23 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground lg:flex">
-      <aside className="bg-surface-low lg:fixed lg:inset-y-0 lg:left-0 lg:w-[228px]">
+      <aside className="bg-surface-low lg:fixed lg:inset-y-0 lg:left-0 lg:w-[216px]">
         <div className="flex h-full flex-col gap-5 overflow-y-auto p-4">
           <Link href="/admin">
             <Logo compact className="max-w-full gap-2" />
           </Link>
 
-          <div className="space-y-3 bg-background p-3.5">
-            <div className="space-y-2.5">
-              <div className="flex flex-col gap-2">
-                <p className="bf-display text-[0.88rem] leading-[1.15] tracking-tightHeading">
+          <div className="space-y-2.5 bg-background p-3">
+            <p className="bf-label text-muted">ACTIVE PROGRAM</p>
+            <div className="space-y-2">
+              <p className="bf-display text-[0.78rem] leading-[1.2] tracking-tightHeading">
                   {adminBountyContext.name}
-                </p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusChip status={adminBountyContext.status} />
-                  <p className="bf-label text-muted">CURRENT PROGRAM</p>
-                </div>
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusChip status={adminBountyContext.status} />
+                <p className="bf-label text-muted">LIVE OWNER VIEW</p>
               </div>
             </div>
-            <button type="button" className="bf-button-tertiary w-full justify-center px-3 py-2.5 text-[0.66rem]">
-              SWITCH BOUNTY
-            </button>
           </div>
 
           <nav className="flex flex-col">
@@ -227,7 +223,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="min-h-screen flex-1 lg:ml-[228px]">{children}</main>
+      <main className="min-h-screen flex-1 lg:ml-[216px]">{children}</main>
     </div>
   );
 }
