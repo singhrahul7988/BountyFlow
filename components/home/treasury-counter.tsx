@@ -50,9 +50,9 @@ export function TreasuryCounter({
           </div>
           <div className="space-y-2.5">
             <p className="bf-data text-[1.85rem] text-foreground sm:text-[2.15rem]">{formatCurrency(balance, 0)}</p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 whitespace-nowrap">
               <span className="h-1.5 w-1.5 bg-primary" />
-              <p className="bf-label text-[0.56rem] text-primary">STABLECOIN ESCROW VERIFIED</p>
+              <p className="bf-label text-[0.5rem] text-primary">STABLECOIN ESCROW VERIFIED</p>
             </div>
           </div>
         </div>
@@ -87,7 +87,7 @@ export function TreasuryCounter({
             <span className="bf-data text-[0.78rem] text-foreground">{yieldValue}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="bf-label text-[0.54rem]">AVG USD / LAST</span>
+            <span className="bf-label text-[0.54rem]">AVG VOLUME</span>
             <span className="bf-data text-[0.78rem] text-foreground">{averageLast}</span>
           </div>
         </div>
