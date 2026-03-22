@@ -137,22 +137,21 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground lg:flex">
-      <aside className="bg-surface-low lg:fixed lg:inset-y-0 lg:left-0 lg:w-[216px]">
-        <div className="flex h-full flex-col gap-5 overflow-y-auto p-4">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground lg:flex">
+      <aside className="overflow-x-hidden bg-surface-low lg:fixed lg:inset-y-0 lg:left-0 lg:w-[210px]">
+        <div className="flex h-full flex-col gap-4 overflow-y-auto overflow-x-hidden p-3.5">
           <Link href="/admin">
             <Logo compact className="max-w-full gap-2" />
           </Link>
 
-          <div className="space-y-2.5 bg-background p-3">
+          <div className="space-y-2 bg-background p-3">
             <p className="bf-label text-muted">ACTIVE PROGRAM</p>
-            <div className="space-y-2">
-              <p className="bf-display text-[0.78rem] leading-[1.2] tracking-tightHeading">
-                  {adminBountyContext.name}
+            <div className="space-y-1.5">
+              <p className="bf-display text-[0.72rem] leading-[1.2] tracking-tightHeading">
+                {adminBountyContext.name}
               </p>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <StatusChip status={adminBountyContext.status} />
-                <p className="bf-label text-muted">LIVE OWNER VIEW</p>
               </div>
             </div>
           </div>
@@ -167,16 +166,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   key={item.label}
                   href={item.href}
                   className={cn(
-                    "flex items-center justify-between gap-3 border-l-[3px] border-transparent px-3.5 py-2.5 font-mono text-[0.72rem] uppercase tracking-label text-muted transition-colors duration-100 ease-linear hover:text-foreground",
+                    "flex items-center justify-between gap-2.5 border-l-[3px] border-transparent px-3 py-2.25 font-mono text-[0.66rem] uppercase tracking-label text-muted transition-colors duration-100 ease-linear hover:text-foreground",
                     isActive ? "border-primary bg-primary/5 text-primary" : ""
                   )}
                 >
-                  <span className="flex items-center gap-3">
+                  <span className="flex min-w-0 items-center gap-2.5">
                     {item.icon}
                     {item.label}
                   </span>
                   {item.badge ? (
-                    <span className="bg-surface-high px-2 py-1 font-data text-[0.68rem] text-amber">
+                    <span className="shrink-0 bg-surface-high px-1.5 py-1 font-data text-[0.62rem] text-amber">
                       {item.badge}
                     </span>
                   ) : null}
@@ -185,22 +184,22 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          <div className="mt-auto space-y-3 bg-background p-3.5">
+          <div className="mt-auto space-y-3 bg-background p-3">
             {hasHydrated && currentUser ? (
               <>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <p className="bf-label">OWNER WALLET</p>
-                  <div className="flex items-center gap-3">
-                    <span className="h-2 w-2 animate-pulse-dot bg-primary" />
-                    <span className="bf-data text-[0.76rem] text-muted">
-                      {currentUser.walletLinked
-                        ? truncateAddress(currentUser.walletAddress)
-                        : "NOT LINKED"}
-                    </span>
-                  </div>
+                  {currentUser.walletLinked ? (
+                    <div className="flex items-center gap-2.5">
+                      <span className="h-2 w-2 animate-pulse-dot bg-primary" />
+                      <span className="bf-data text-[0.7rem] text-muted">
+                        {truncateAddress(currentUser.walletAddress)}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
                 <WalletLinkButton
-                  className="w-full justify-center px-3 py-2.5 text-[0.66rem]"
+                  className="w-full justify-center px-3 py-2.25 text-[0.62rem]"
                   showHelperText={false}
                   showInlineFeedback={false}
                 />
@@ -208,7 +207,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   type="button"
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="bf-button-tertiary w-full justify-center px-3 py-2.5 text-[0.66rem]"
+                  className="bf-button-tertiary w-full justify-center px-3 py-2.25 text-[0.62rem]"
                 >
                   {isLoggingOut ? "LOGGING OUT..." : "LOG OUT"}
                 </button>
@@ -223,7 +222,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="min-h-screen flex-1 lg:ml-[216px]">{children}</main>
+      <main className="min-h-screen flex-1 overflow-x-hidden lg:ml-[210px]">{children}</main>
     </div>
   );
 }

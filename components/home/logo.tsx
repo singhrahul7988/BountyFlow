@@ -31,7 +31,7 @@ export function Logo({
       </svg>
       <span
         className={cn(
-          compact ? "text-[1.08rem]" : "text-[1.7rem]",
+          compact ? "text-[0.9rem]" : "text-[1.7rem]",
           "bf-display font-bold tracking-tightHeading text-primary"
         )}
       >
