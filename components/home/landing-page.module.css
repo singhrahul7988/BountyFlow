@@ -1,0 +1,131 @@
+.heroTexture::before,
+.heroTexture::after {
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.heroTexture::before {
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08) 0.5px, transparent 0.5px),
+    radial-gradient(circle at 80% 60%, rgba(255, 255, 255, 0.05) 0.7px, transparent 0.7px);
+  background-position: 0 0, 28px 28px;
+  background-size: 32px 32px, 36px 36px;
+  mix-blend-mode: screen;
+  opacity: 0.05;
+}
+
+.heroTexture::after {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.1) 0,
+    rgba(255, 255, 255, 0.1) 2px,
+    transparent 2px,
+    transparent 6px
+  );
+  opacity: 0.1;
+}
+
+.bloom {
+  background: radial-gradient(circle, rgba(110, 255, 192, 0.08) 0%, rgba(110, 255, 192, 0.04) 25%, transparent 70%);
+  filter: blur(12px);
+}
+
+.marquee {
+  overflow: hidden;
+  position: relative;
+}
+
+.marqueeTrack {
+  align-items: center;
+  animation: ticker var(--duration, 28s) linear infinite;
+  display: flex;
+  min-width: max-content;
+  width: max-content;
+}
+
+.marquee:hover .marqueeTrack {
+  animation-play-state: paused;
+}
+
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.hiddenSection {
+  filter: blur(10px);
+  opacity: 0;
+  transform: translate3d(0, 56px, 0) scale(0.985);
+  transition:
+    opacity 720ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 820ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 820ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.visibleSection {
+  filter: blur(0);
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.hiddenSection :global([data-reveal]) {
+  filter: blur(10px);
+  opacity: 0;
+  transform: translate3d(0, 38px, 0);
+  transition:
+    opacity 720ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 820ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 820ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(var(--reveal-order, 0) * 110ms);
+  will-change: opacity, transform, filter;
+}
+
+.hiddenSection :global([data-reveal="left"]) {
+  transform: translate3d(-48px, 22px, 0);
+}
+
+.hiddenSection :global([data-reveal="right"]) {
+  transform: translate3d(48px, 22px, 0);
+}
+
+.hiddenSection :global([data-reveal="zoom"]) {
+  transform: translate3d(0, 28px, 0) scale(0.94);
+}
+
+.visibleSection :global([data-reveal]) {
+  filter: blur(0);
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.chartBar {
+  position: relative;
+}
+
+.chartBar::after {
+  background: rgba(53, 52, 58, 0.95);
+  color: #f0f0f5;
+  content: attr(data-value);
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 0.65rem;
+  left: 50%;
+  opacity: 0;
+  padding: 0.25rem 0.4rem;
+  pointer-events: none;
+  position: absolute;
+  top: -2rem;
+  transform: translateX(-50%);
+  transition: opacity 120ms ease;
+  white-space: nowrap;
+}
+
+.chartBar:hover::after {
+  opacity: 1;
+}
