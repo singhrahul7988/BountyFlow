@@ -4,11 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { getAuthHref, getDefaultRouteForRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { useAppStore } from "@/lib/stores/app-store";
-import { truncateAddress } from "@/lib/utils";
 import { WalletLinkButton } from "../wallet/wallet-link-button";
 import { Logo } from "./logo";
 
@@ -20,13 +18,10 @@ export function Navbar() {
     isMobileNavOpen,
     currentUser,
     hasHydrated,
-    walletAddress,
     toggleMobileNav,
     closeMobileNav,
     signOut
   } = useAppStore();
-
-  const dashboardHref = currentUser ? getDefaultRouteForRole(currentUser.role) : "/auth";
 
   const navLinks = [
     { label: "Bounties", href: "/bounties" },
@@ -73,14 +68,6 @@ export function Navbar() {
           <div className="hidden items-center gap-3 lg:flex">
             {hasHydrated && currentUser ? (
               <>
-                <Link
-                  href={getDefaultRouteForRole(currentUser.role)}
-                  className="bf-button-secondary px-3.5 py-2.25 text-[0.64rem] text-foreground"
-                >
-                  {currentUser.walletLinked
-                    ? truncateAddress(walletAddress || currentUser.walletAddress)
-                    : "DASHBOARD"}
-                </Link>
                 <WalletLinkButton
                   className="px-3.5 py-2.25 text-[0.64rem]"
                   showHelperText={false}
@@ -102,9 +89,6 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <Link href={dashboardHref} className="bf-button-secondary px-3.5 py-2.25 text-[0.64rem]">
-                  DASHBOARD
-                </Link>
                 <Link href="/auth" className="bf-button-secondary px-3.5 py-2.25 text-[0.64rem]">
                   SIGN IN
                 </Link>
@@ -145,15 +129,6 @@ export function Navbar() {
             ))}
             {hasHydrated && currentUser ? (
               <>
-                <Link
-                  href={getDefaultRouteForRole(currentUser.role)}
-                  onClick={closeMobileNav}
-                  className="bf-button-secondary justify-center"
-                >
-                  {currentUser.walletLinked
-                    ? truncateAddress(walletAddress || currentUser.walletAddress)
-                    : "DASHBOARD"}
-                </Link>
                 <WalletLinkButton
                   className="justify-center"
                   showHelperText={false}
@@ -175,13 +150,6 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <Link
-                  href={dashboardHref}
-                  onClick={closeMobileNav}
-                  className="bf-button-secondary justify-center"
-                >
-                  DASHBOARD
-                </Link>
                 <Link href="/auth" onClick={closeMobileNav} className="bf-button-secondary justify-center">
                   SIGN IN
                 </Link>

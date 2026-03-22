@@ -27,15 +27,7 @@ const spaceMono = Space_Mono({
 
 export const metadata: Metadata = {
   title: "BountyFlow",
-  description: "Autonomous on-chain bug bounty infrastructure.",
-  icons: {
-    icon: [
-      { url: "/favicon.png", type: "image/png" },
-      { url: "/favicon.svg", type: "image/svg+xml" }
-    ],
-    shortcut: [{ url: "/favicon.png", type: "image/png" }],
-    apple: [{ url: "/apple-icon.png", type: "image/png" }]
-  }
+  description: "Autonomous on-chain bug bounty infrastructure."
 };
 
 export default function RootLayout({
