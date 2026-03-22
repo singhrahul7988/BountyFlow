@@ -146,7 +146,11 @@ export function ResearcherDashboard({
                       : "PAYOUT WALLET NOT LINKED"}
                   </span>
                 </div>
-                <WalletLinkButton className="justify-center" />
+                <WalletLinkButton
+                  className="min-w-[12.5rem] justify-center"
+                  showHelperText={false}
+                  showInlineFeedback={false}
+                />
               </div>
             ) : (
               <div className="flex items-center gap-3 bg-surface-high px-4 py-3">

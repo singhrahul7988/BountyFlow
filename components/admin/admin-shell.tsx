@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { adminBountyContext } from "@/lib/admin-data";
 import { adminSubmissions as seededAdminSubmissions } from "@/lib/admin-submissions-data";
+import { signOutBrowserSession } from "@/lib/supabase/browser-sign-out";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { useAppStore } from "@/lib/stores/app-store";
@@ -85,8 +86,8 @@ const navItems = [
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [supabase] = useState(() => (hasSupabaseEnv() ? createClient() : null));
   const { currentUser, hasHydrated, signOut } = useAppStore();
   useAuthenticatedDemoStateSync(currentUser?.role === "owner");
@@ -121,8 +122,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         ? submissionsBadge
         : item.href === "/admin/notifications"
           ? notificationsBadge
-          : undefined
+        : undefined
   }));
+
+  async function handleLogout() {
+    if (isLoggingOut) {
+      return;
+    }
+
+    setIsLoggingOut(true);
+    signOut();
+    await signOutBrowserSession(supabase);
+    setIsLoggingOut(false);
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground lg:flex">
@@ -189,18 +201,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                     </span>
                   </div>
                 </div>
-                <WalletLinkButton className="w-full justify-center" />
+                <WalletLinkButton
+                  className="w-full justify-center"
+                  showHelperText={false}
+                />
                 <button
                   type="button"
-                  onClick={async () => {
-                    await supabase?.auth.signOut();
-                    signOut();
-                    router.push("/auth");
-                    router.refresh();
-                  }}
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
                   className="bf-button-tertiary"
                 >
-                  LOG OUT
+                  {isLoggingOut ? "LOGGING OUT..." : "LOG OUT"}
                 </button>
               </>
             ) : (

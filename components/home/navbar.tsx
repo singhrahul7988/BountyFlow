@@ -1,18 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
+import { signOutBrowserSession } from "@/lib/supabase/browser-sign-out";
 import { useAppStore } from "@/lib/stores/app-store";
 import { WalletLinkButton } from "../wallet/wallet-link-button";
 import { Logo } from "./logo";
 
 export function Navbar() {
-  const router = useRouter();
   const [isCompressed, setIsCompressed] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [supabase] = useState(() => (hasSupabaseEnv() ? createClient() : null));
   const {
     isMobileNavOpen,
@@ -38,6 +38,18 @@ export function Navbar() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  async function handleLogout() {
+    if (isLoggingOut) {
+      return;
+    }
+
+    setIsLoggingOut(true);
+    signOut();
+    closeMobileNav();
+    await signOutBrowserSession(supabase);
+    setIsLoggingOut(false);
+  }
 
   return (
     <>
@@ -76,15 +88,10 @@ export function Navbar() {
                 <button
                   type="button"
                   className="bf-button-primary px-3.5 py-2.25 text-[0.64rem]"
-                  onClick={async () => {
-                    await supabase?.auth.signOut();
-                    signOut();
-                    closeMobileNav();
-                    router.push("/auth");
-                    router.refresh();
-                  }}
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
                 >
-                  LOG OUT
+                  {isLoggingOut ? "LOGGING OUT..." : "LOG OUT"}
                 </button>
               </>
             ) : (
@@ -137,15 +144,10 @@ export function Navbar() {
                 <button
                   type="button"
                   className="bf-button-primary justify-center"
-                  onClick={async () => {
-                    await supabase?.auth.signOut();
-                    signOut();
-                    closeMobileNav();
-                    router.push("/auth");
-                    router.refresh();
-                  }}
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
                 >
-                  LOG OUT
+                  {isLoggingOut ? "LOGGING OUT..." : "LOG OUT"}
                 </button>
               </>
             ) : (
