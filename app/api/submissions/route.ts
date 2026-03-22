@@ -8,6 +8,7 @@ import {
 } from "@/lib/demo-persistence";
 import type { AdminSubmission } from "@/lib/admin-submissions-data";
 import type { ResearcherSubmission } from "@/lib/dashboard-data";
+import { createOwnerNotification } from "@/lib/onchain/service";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { getProfileByUserId } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
@@ -90,6 +91,22 @@ export async function POST(request: Request) {
       { error: "Failed to normalize stored submission." },
       { status: 500 }
     );
+  }
+
+  if (matchingBounty?.owner_id && adminSubmission.aiScore >= 5) {
+    try {
+      await createOwnerNotification(supabase, {
+        ownerId: matchingBounty.owner_id,
+        type: adminSubmission.aiScore >= 9 ? "CRITICAL" : "SUBMISSION",
+        title: `${adminSubmission.title} entered the owner queue`,
+        description:
+          "A new researcher submission passed the triage threshold and is ready for owner review.",
+        actionLabel: "REVIEW NOW ->",
+        actionHref: `/admin/submissions/${adminSubmission.id}`
+      });
+    } catch {
+      // Submission persistence should remain usable even if notification tables are not ready.
+    }
   }
 
   return NextResponse.json(item);

@@ -7,6 +7,9 @@ import {
   treasurySummary,
   treasuryTransactions,
   treasuryYieldChart,
+  type TreasuryAllocationRow,
+  type TreasuryChartPoint,
+  type TreasuryTransaction,
   type TreasuryTransactionType
 } from "@/lib/admin-treasury-data";
 import { formatCurrency } from "@/lib/utils";
@@ -14,12 +17,27 @@ import { StatusChip } from "../home/status-chip";
 
 const transactionFilters = ["ALL", "DEPOSITS", "PAYOUTS", "YIELD"] as const;
 
-export function AdminTreasuryView() {
-  const [yieldEarned, setYieldEarned] = useState(treasurySummary.yieldEarned);
-  const [availableBalance, setAvailableBalance] = useState(treasurySummary.availableBalance);
+export function AdminTreasuryView({
+  summary = treasurySummary,
+  allocation = treasuryAllocation,
+  chart = treasuryYieldChart,
+  transactions = treasuryTransactions
+}: {
+  summary?: typeof treasurySummary;
+  allocation?: TreasuryAllocationRow[];
+  chart?: TreasuryChartPoint[];
+  transactions?: TreasuryTransaction[];
+}) {
+  const [yieldEarned, setYieldEarned] = useState(summary.yieldEarned);
+  const [availableBalance, setAvailableBalance] = useState(summary.availableBalance);
   const [activeFilter, setActiveFilter] = useState<(typeof transactionFilters)[number]>("ALL");
   const [isChartVisible, setIsChartVisible] = useState(false);
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
+
+  useEffect(() => {
+    setYieldEarned(summary.yieldEarned);
+    setAvailableBalance(summary.availableBalance);
+  }, [summary.availableBalance, summary.yieldEarned]);
 
   useEffect(() => {
     setIsChartVisible(true);
@@ -32,12 +50,12 @@ export function AdminTreasuryView() {
     return () => window.clearInterval(interval);
   }, []);
 
-  const chartMax = Math.max(...treasuryYieldChart.map((point) => point.amount));
+  const chartMax = Math.max(...chart.map((point) => point.amount), 1);
   const yAxisLabels = [Math.round(chartMax), Math.round(chartMax * 0.66), Math.round(chartMax * 0.33)];
 
   const visibleTransactions = useMemo(() => {
     if (activeFilter === "ALL") {
-      return treasuryTransactions;
+      return transactions;
     }
 
     const mappedType: Record<(typeof transactionFilters)[number], TreasuryTransactionType | null> = {
@@ -47,10 +65,10 @@ export function AdminTreasuryView() {
       YIELD: "YIELD"
     };
 
-    return treasuryTransactions.filter(
+    return transactions.filter(
       (transaction) => transaction.type === mappedType[activeFilter]
     );
-  }, [activeFilter]);
+  }, [activeFilter, transactions]);
 
   return (
     <section className="p-6 md:p-8 xl:p-10">
@@ -66,7 +84,7 @@ export function AdminTreasuryView() {
           <article className="space-y-4 bg-surface-high p-6">
             <p className="bf-label">TOTAL DEPOSITED</p>
             <p className="bf-data text-[2.15rem] text-primary">
-              {formatCurrency(treasurySummary.totalDeposited, 0)}
+              {formatCurrency(summary.totalDeposited, 0)}
             </p>
             <p className="text-sm leading-7 text-muted">
               Total USDT capital committed to the active bounty wallet.
@@ -118,8 +136,8 @@ export function AdminTreasuryView() {
               <div className="space-y-4">
                 <div className="relative h-56">
                   <div className="absolute inset-0 grid grid-cols-14 items-end gap-3">
-                    {treasuryYieldChart.map((point, index) => {
-                      const isToday = index === treasuryYieldChart.length - 1;
+                    {chart.map((point, index) => {
+                      const isToday = index === chart.length - 1;
                       const height = `${(point.amount / chartMax) * 100}%`;
                       const isHovered = hoveredDay === point.day;
 
@@ -146,7 +164,7 @@ export function AdminTreasuryView() {
                 </div>
 
                 <div className="grid grid-cols-14 gap-3">
-                  {treasuryYieldChart.map((point) => (
+                  {chart.map((point) => (
                     <span key={point.day} className="text-center font-data text-[0.62rem] text-muted">
                       {point.day}
                     </span>
@@ -179,7 +197,7 @@ export function AdminTreasuryView() {
                   </tr>
                 </thead>
                 <tbody>
-                  {treasuryAllocation.map((row) => (
+                  {allocation.map((row) => (
                     <tr key={row.category}>
                       <td className="border-b border-outline-variant/15 px-5 py-5 font-data text-[0.86rem] text-foreground">
                         {row.category}

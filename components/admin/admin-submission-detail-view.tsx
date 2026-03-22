@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { EvidenceUploadsPanel } from "@/components/evidence/evidence-uploads-panel";
-import { updateRemoteSubmissionDecision } from "@/lib/demo-api";
+import {
+  resolveRemoteSubmissionDispute,
+  updateRemoteSubmissionDecision
+} from "@/lib/demo-api";
 import type { AdminSubmission } from "@/lib/admin-submissions-data";
 import type { SubmissionDecision } from "@/lib/demo-types";
 import { useDemoDataStore } from "@/lib/stores/demo-data-store";
@@ -75,6 +78,32 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
     }
   }
 
+  async function handleResolveDispute(resolution: "ACCEPT_CLAIM" | "HOLD_ORIGINAL") {
+    setDecisionError("");
+    setIsSavingDecision(true);
+
+    try {
+      const persisted = await resolveRemoteSubmissionDispute(submission.id, resolution);
+      syncRemoteSubmissions({
+        adminSubmissions: [persisted.adminSubmission],
+        researcherSubmissions: [persisted.researcherSubmission],
+        decisions: {
+          [persisted.adminSubmission.id]: persisted.decision
+        }
+      });
+      applySubmissionDecision(submission.id, persisted.decision);
+      setShowRejectBox(false);
+    } catch (error) {
+      setDecisionError(
+        error instanceof Error
+          ? `${error.message} Dispute resolution was not persisted.`
+          : "Dispute resolution was not persisted."
+      );
+    } finally {
+      setIsSavingDecision(false);
+    }
+  }
+
   return (
     <section className="p-6 md:p-8 xl:p-10">
       <div className="space-y-8">
@@ -121,8 +150,13 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
           <div className="border-l-[3px] border-amber bg-amber/10 p-4">
             <p className="bf-label text-amber">DISPUTE NOTE</p>
             <p className="mt-2 text-sm leading-7 text-muted">{submission.disputeNote.reason}</p>
+            {submission.disputeNote.justification ? (
+              <p className="mt-2 text-sm leading-7 text-muted">
+                {submission.disputeNote.justification}
+              </p>
+            ) : null}
             <p className="mt-3 bf-data text-[0.85rem] text-amber">
-              REQUESTED {submission.disputeNote.requestedPct}% | CURRENT {submission.disputeNote.approvedPct}%
+              REQUESTED {submission.disputeNote.desiredPct}% | CURRENT {submission.disputeNote.approvedPct}%
             </p>
           </div>
         ) : null}
@@ -297,60 +331,81 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
                 </label>
               ) : null}
 
-              <div className="flex flex-col gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    void persistDecision({
-                      status: "DISPUTE WINDOW",
-                      payoutPct
-                    });
-                    setShowRejectBox(false);
-                  }}
-                  className="bf-button-primary justify-center"
-                  disabled={isSavingDecision}
-                >
-                  {isSavingDecision ? "SAVING..." : "APPROVE & RELEASE USDT ->"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void persistDecision({
-                      status: "UNDER REVIEW",
-                      payoutPct
-                    });
-                    setShowRejectBox(false);
-                  }}
-                  className="bf-button-secondary justify-center"
-                  disabled={isSavingDecision}
-                >
-                  MARK FOR MANUAL REVIEW
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowRejectBox((current) => !current)}
-                  className="inline-flex items-center justify-center border border-danger/35 px-4 py-3 font-mono text-[0.75rem] uppercase tracking-label text-danger transition-colors duration-100 ease-linear hover:border-danger hover:bg-danger/10"
-                >
-                  REJECT SUBMISSION
-                </button>
-                {showRejectBox ? (
+              {status === "DISPUTE OPEN" ? (
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void handleResolveDispute("ACCEPT_CLAIM")}
+                    className="bf-button-primary justify-center"
+                    disabled={isSavingDecision}
+                  >
+                    {isSavingDecision ? "RESOLVING..." : "ACCEPT RESEARCHER CLAIM ->"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleResolveDispute("HOLD_ORIGINAL")}
+                    className="bf-button-secondary justify-center"
+                    disabled={isSavingDecision}
+                  >
+                    HOLD AT ORIGINAL %
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
                   <button
                     type="button"
                     onClick={() => {
                       void persistDecision({
-                        status: "REJECTED",
-                        payoutPct,
-                        rejectionReason: draftRejectionReason
+                        status: "DISPUTE WINDOW",
+                        payoutPct
                       });
                       setShowRejectBox(false);
                     }}
-                    className="inline-flex items-center justify-center border border-danger/35 px-4 py-3 font-mono text-[0.75rem] uppercase tracking-label text-danger transition-colors duration-100 ease-linear hover:border-danger hover:bg-danger/10"
+                    className="bf-button-primary justify-center"
                     disabled={isSavingDecision}
                   >
-                    CONFIRM REJECTION
+                    {isSavingDecision ? "SAVING..." : "APPROVE & RELEASE USDT ->"}
                   </button>
-                ) : null}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void persistDecision({
+                        status: "UNDER REVIEW",
+                        payoutPct
+                      });
+                      setShowRejectBox(false);
+                    }}
+                    className="bf-button-secondary justify-center"
+                    disabled={isSavingDecision}
+                  >
+                    MARK FOR MANUAL REVIEW
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowRejectBox((current) => !current)}
+                    className="inline-flex items-center justify-center border border-danger/35 px-4 py-3 font-mono text-[0.75rem] uppercase tracking-label text-danger transition-colors duration-100 ease-linear hover:border-danger hover:bg-danger/10"
+                  >
+                    REJECT SUBMISSION
+                  </button>
+                  {showRejectBox ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void persistDecision({
+                          status: "REJECTED",
+                          payoutPct,
+                          rejectionReason: draftRejectionReason
+                        });
+                        setShowRejectBox(false);
+                      }}
+                      className="inline-flex items-center justify-center border border-danger/35 px-4 py-3 font-mono text-[0.75rem] uppercase tracking-label text-danger transition-colors duration-100 ease-linear hover:border-danger hover:bg-danger/10"
+                      disabled={isSavingDecision}
+                    >
+                      CONFIRM REJECTION
+                    </button>
+                  ) : null}
+                </div>
+              )}
 
               {decisionError ? <p className="text-sm leading-7 text-amber">{decisionError}</p> : null}
 

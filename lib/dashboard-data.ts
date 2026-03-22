@@ -1,3 +1,5 @@
+import type { SubmissionDisputeNote } from "@/lib/demo-types";
+
 export type ResearcherSubmissionStatus =
   | "DRAFT"
   | "SUBMITTED"
@@ -41,6 +43,7 @@ export type ResearcherSubmission = {
     references: string[];
     uploadedFiles?: UploadedEvidenceFile[];
   };
+  dispute?: SubmissionDisputeNote;
 };
 
 export type PayoutHistoryEntry = {

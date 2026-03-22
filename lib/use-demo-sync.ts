@@ -42,6 +42,7 @@ export function usePublicBountiesSync() {
 export function useAuthenticatedDemoStateSync(enabled: boolean) {
   const syncRemoteBounties = useDemoDataStore((state) => state.syncRemoteBounties);
   const syncRemoteSubmissions = useDemoDataStore((state) => state.syncRemoteSubmissions);
+  const syncRemoteNotifications = useDemoDataStore((state) => state.syncRemoteNotifications);
   const [hasLoaded, setHasLoaded] = useState(!hasSupabaseEnv());
 
   useEffect(() => {
@@ -66,6 +67,7 @@ export function useAuthenticatedDemoStateSync(enabled: boolean) {
           researcherSubmissions: payload.researcherSubmissions,
           decisions: payload.decisions
         });
+        syncRemoteNotifications(payload.notifications);
         setHasLoaded(true);
       })
       .catch(() => {
@@ -77,7 +79,7 @@ export function useAuthenticatedDemoStateSync(enabled: boolean) {
     return () => {
       cancelled = true;
     };
-  }, [enabled, syncRemoteBounties, syncRemoteSubmissions]);
+  }, [enabled, syncRemoteBounties, syncRemoteNotifications, syncRemoteSubmissions]);
 
   return hasLoaded;
 }

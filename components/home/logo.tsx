@@ -15,8 +15,13 @@ export function Logo({ className }: { className?: string }) {
           stroke="currentColor"
           strokeWidth="2.5"
         />
-        <path d="M15 31L33 13" stroke="currentColor" strokeWidth="3" />
-        <path d="M18 13H33V18" stroke="currentColor" strokeWidth="3" />
+        <path
+          d="M15 31L31 15M22 15H33V26"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="square"
+          strokeLinejoin="miter"
+        />
       </svg>
       <span className="bf-display text-2xl font-bold tracking-tightHeading text-primary">
         BOUNTYFLOW

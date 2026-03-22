@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { Navbar } from "@/components/home/navbar";
 import { SiteFooter } from "@/components/home/site-footer";
 
@@ -9,6 +7,8 @@ const stackItems = [
   "Supabase Auth + profiles table",
   "Supabase-backed demo bounty + submission persistence",
   "Supabase Storage evidence uploads",
+  "Supabase-backed treasury + owner notifications",
+  "Mock on-chain wallet, escrow funding, and payout tx flow",
   "Zustand local fallback + sync layer",
   "React Query",
   "Gemini-backed exploit analysis demo route"
@@ -20,11 +20,12 @@ const demoFlow = [
   "Researcher signs in, opens a bounty, and submits a report through the 3-step flow.",
   "Submission instantly appears in the owner queue and owner notifications inbox.",
   "Owner reviews the report in /admin/submissions or /admin/submissions/[id].",
-  "Owner decisions propagate back to the researcher dashboard and submission detail route."
+  "Owner decisions propagate back to the researcher dashboard and submission detail route.",
+  "Researchers can open disputes during the dispute window, and owners can resolve them into final payout settlements."
 ];
 
 const setupSteps = [
-  "Create .env.local with NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, and OWNER_ALLOWED_EMAILS.",
+  "Create .env.local with NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, OWNER_ALLOWED_EMAILS, and BOUNTYFLOW_ONCHAIN_MODE=mock.",
   "Run the SQL in supabase/profiles.sql inside the Supabase SQL Editor.",
   "Run the SQL in supabase/demo_persistence.sql so owner-created bounties and researcher submissions persist across sessions.",
   "Run the SQL in supabase/storage_evidence.sql to create the public evidence bucket and upload policies.",
@@ -55,7 +56,7 @@ export default function DocsPage() {
           </p>
         </div>
 
-        <div className="mt-10 grid gap-6 xl:grid-cols-[0.68fr_0.32fr]">
+        <div className="mt-10">
           <div className="space-y-6">
             <section className="bg-surface-low p-6 md:p-8">
               <p className="bf-label text-primary">WHAT IS WORKING</p>
@@ -97,46 +98,6 @@ export default function DocsPage() {
               </ol>
             </section>
           </div>
-
-          <aside className="space-y-6 xl:sticky xl:top-28">
-            <section className="bg-surface-low p-6">
-              <p className="bf-label text-primary">KEY ROUTES</p>
-              <div className="mt-5 space-y-3">
-                {[
-                  ["/", "Landing"],
-                  ["/bounties", "Public bounty index"],
-                  ["/bounty/[slug]", "Public bounty detail"],
-                  ["/bounty/[slug]/submit", "Researcher submission flow"],
-                  ["/dashboard", "Researcher dashboard"],
-                  ["/admin", "Owner dashboard"],
-                  ["/admin/submissions", "Owner queue"],
-                  ["/admin/create", "Create bounty"],
-                  ["/admin/notifications", "Owner inbox"],
-                  ["/admin/settings", "Owner settings"]
-                ].map(([path, label]) => (
-                  <div key={path} className="bg-background p-4">
-                    <p className="bf-data text-[0.82rem] text-primary">{path}</p>
-                    <p className="mt-2 text-sm leading-7 text-muted">{label}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="bg-surface-low p-6">
-              <p className="bf-label text-primary">PROJECT FILES</p>
-              <div className="mt-5 flex flex-col gap-3">
-                <Link href="/leaderboard" className="bf-button-tertiary">
-                  OPEN LEADERBOARD
-                </Link>
-                <Link href="/auth" className="bf-button-secondary">
-                  OPEN AUTH
-                </Link>
-                <Link href="/bounties" className="bf-button-primary">
-                  BROWSE BOUNTIES
-                </Link>
-              </div>
-            </section>
-          </aside>
         </div>
       </section>
 

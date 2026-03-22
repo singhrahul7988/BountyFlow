@@ -8,16 +8,15 @@ import {
 } from "@/lib/dashboard-data";
 import type { PayoutHistoryEntry } from "@/lib/dashboard-data";
 import type { DashboardSummary } from "@/lib/dashboard-data";
-
-type SubmissionDecision = {
-  status: AdminSubmissionStatus;
-  payoutPct: number;
-  rejectionReason?: string;
-};
+import type { SubmissionDecision } from "@/lib/demo-types";
 
 function mapAdminStatusToResearcherStatus(
   status: AdminSubmissionStatus
 ): ResearcherSubmissionStatus {
+  if (status === "PAID") {
+    return "PAID";
+  }
+
   if (status === "DISPUTE OPEN") {
     return "DISPUTE OPEN";
   }
@@ -87,7 +86,9 @@ export function applySubmissionDecisionToResearcher(
     ...submission,
     status: mappedStatus,
     payout,
-    responseEta: getResearcherResponseEta(mappedStatus)
+    responseEta: getResearcherResponseEta(mappedStatus),
+    txHash: decision.txHash ?? submission.txHash,
+    dispute: decision.disputeNote ?? submission.dispute
   };
 }
 

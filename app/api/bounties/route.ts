@@ -3,6 +3,12 @@ import { NextResponse } from "next/server";
 import { getRoleFromProfile, isAllowedOwnerEmail } from "@/lib/auth";
 import { normalizeStoredBounty } from "@/lib/demo-persistence";
 import type { BountyDetail } from "@/lib/bounty-data";
+import {
+  createOwnerNotification,
+  insertTreasuryTransaction,
+  performTreasuryTransfer,
+  provisionEscrowWallet
+} from "@/lib/onchain/service";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { getProfileByUserId } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
@@ -60,14 +66,39 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Owner access required." }, { status: 403 });
   }
 
+  const escrowWallet = await provisionEscrowWallet({
+    ownerId: user.id,
+    bountySlug: bounty.slug
+  });
+  const fundingTransfer = await performTreasuryTransfer({
+    ownerId: user.id,
+    bountySlug: bounty.slug,
+    amount: bounty.rewardPool,
+    type: "DEPOSIT",
+    description: `Owner funded ${bounty.title} and armed the escrow wallet.`
+  });
+  const nextBounty = {
+    ...bounty,
+    escrowAddress: escrowWallet.address,
+    recentActivity: [
+      {
+        id: `${bounty.slug}-funded`,
+        label: "WDK ESCROW WALLET CREATED AND FUNDED",
+        timestamp: "JUST NOW",
+        outcome: "ESCROW VERIFIED"
+      },
+      ...bounty.recentActivity.filter((item) => item.id !== `${bounty.slug}-funded`)
+    ]
+  };
+
   const { data, error } = await supabase
     .from("demo_bounties")
     .upsert(
       {
         owner_id: user.id,
-        slug: bounty.slug,
-        title: bounty.title,
-        payload: bounty
+        slug: nextBounty.slug,
+        title: nextBounty.title,
+        payload: nextBounty
       },
       { onConflict: "slug" }
     )
@@ -82,6 +113,28 @@ export async function POST(request: Request) {
 
   if (!item) {
     return NextResponse.json({ error: "Failed to normalize stored bounty." }, { status: 500 });
+  }
+
+  try {
+    await insertTreasuryTransaction(supabase, {
+      ownerId: user.id,
+      bountySlug: nextBounty.slug,
+      amount: nextBounty.rewardPool,
+      type: "DEPOSIT",
+      description: `Escrow funded for ${nextBounty.title}.`,
+      txHash: fundingTransfer.txHash
+    });
+
+    await createOwnerNotification(supabase, {
+      ownerId: user.id,
+      type: "PAYOUT",
+      title: `${nextBounty.title} escrow funded`,
+      description: "The mock on-chain funding flow completed and treasury tracking is now live.",
+      actionLabel: "VIEW TREASURY ->",
+      actionHref: "/admin/treasury"
+    });
+  } catch {
+    // Core bounty creation should still succeed even if optional ledger tables are not ready yet.
   }
 
   return NextResponse.json({ item });

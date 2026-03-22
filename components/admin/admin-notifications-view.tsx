@@ -7,6 +7,11 @@ import {
   type AdminNotification,
   type AdminNotificationGroup
 } from "@/lib/admin-notifications-data";
+import {
+  dismissRemoteNotification,
+  markAllRemoteNotificationsRead,
+  markRemoteNotificationRead
+} from "@/lib/demo-api";
 import { useDemoDataStore } from "@/lib/stores/demo-data-store";
 
 const groupOrder: AdminNotificationGroup[] = ["TODAY", "YESTERDAY", "EARLIER"];
@@ -33,6 +38,33 @@ export function AdminNotificationsView() {
 
   const unreadCount = items.filter((item) => item.unread).length;
 
+  async function handleMarkAllRead() {
+    markAllRead();
+    try {
+      await markAllRemoteNotificationsRead();
+    } catch {
+      // Local state remains the fallback if remote persistence is unavailable.
+    }
+  }
+
+  async function handleDismiss(id: string) {
+    dismissNotification(id);
+    try {
+      await dismissRemoteNotification(id);
+    } catch {
+      // Local state remains the fallback if remote persistence is unavailable.
+    }
+  }
+
+  async function handleMarkRead(id: string) {
+    markRead(id);
+    try {
+      await markRemoteNotificationRead(id);
+    } catch {
+      // Local state remains the fallback if remote persistence is unavailable.
+    }
+  }
+
   return (
     <section className="p-6 md:p-8 xl:p-10">
       <div className="space-y-8">
@@ -50,7 +82,7 @@ export function AdminNotificationsView() {
 
           <button
             type="button"
-            onClick={markAllRead}
+            onClick={() => void handleMarkAllRead()}
             className="bf-button-tertiary self-start text-primary md:self-auto"
           >
             MARK ALL READ
@@ -92,12 +124,12 @@ export function AdminNotificationsView() {
                           : "border-transparent bg-surface-low"
                       }`}
                     >
-                      <button
-                        type="button"
-                        aria-label={`Dismiss ${item.title}`}
-                        onClick={() => dismissNotification(item.id)}
-                        className="absolute right-5 top-5 font-mono text-sm text-muted transition-colors duration-100 ease-linear hover:text-foreground"
-                      >
+                        <button
+                          type="button"
+                          aria-label={`Dismiss ${item.title}`}
+                          onClick={() => void handleDismiss(item.id)}
+                          className="absolute right-5 top-5 font-mono text-sm text-muted transition-colors duration-100 ease-linear hover:text-foreground"
+                        >
                         X
                       </button>
 
@@ -120,7 +152,7 @@ export function AdminNotificationsView() {
                           {item.actionHref && item.actionLabel ? (
                             <Link
                               href={item.actionHref}
-                              onClick={() => markRead(item.id)}
+                              onClick={() => void handleMarkRead(item.id)}
                               className="bf-button-tertiary text-primary"
                             >
                               {item.actionLabel}
@@ -129,7 +161,7 @@ export function AdminNotificationsView() {
                           {item.unread ? (
                             <button
                               type="button"
-                              onClick={() => markRead(item.id)}
+                              onClick={() => void handleMarkRead(item.id)}
                               className="bf-button-secondary text-foreground"
                             >
                               MARK READ

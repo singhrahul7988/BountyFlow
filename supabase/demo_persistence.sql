@@ -23,8 +23,35 @@ create table if not exists public.demo_submissions (
   updated_at timestamptz not null default timezone('utc'::text, now())
 );
 
+create table if not exists public.demo_notifications (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references auth.users (id) on delete cascade,
+  type text not null check (type in ('CRITICAL', 'SUBMISSION', 'PAYOUT', 'DISPUTE')),
+  title text not null,
+  description text not null,
+  unread boolean not null default true,
+  action_label text,
+  action_href text,
+  created_at timestamptz not null default timezone('utc'::text, now()),
+  updated_at timestamptz not null default timezone('utc'::text, now())
+);
+
+create table if not exists public.demo_treasury_transactions (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references auth.users (id) on delete cascade,
+  bounty_slug text not null,
+  type text not null check (type in ('DEPOSIT', 'PAYOUT', 'YIELD')),
+  amount numeric not null,
+  description text not null,
+  tx_hash text not null,
+  created_at timestamptz not null default timezone('utc'::text, now()),
+  updated_at timestamptz not null default timezone('utc'::text, now())
+);
+
 alter table public.demo_bounties enable row level security;
 alter table public.demo_submissions enable row level security;
+alter table public.demo_notifications enable row level security;
+alter table public.demo_treasury_transactions enable row level security;
 
 create or replace function public.handle_demo_updated_at()
 returns trigger
@@ -45,6 +72,18 @@ execute procedure public.handle_demo_updated_at();
 drop trigger if exists on_demo_submissions_updated on public.demo_submissions;
 create trigger on_demo_submissions_updated
 before update on public.demo_submissions
+for each row
+execute procedure public.handle_demo_updated_at();
+
+drop trigger if exists on_demo_notifications_updated on public.demo_notifications;
+create trigger on_demo_notifications_updated
+before update on public.demo_notifications
+for each row
+execute procedure public.handle_demo_updated_at();
+
+drop trigger if exists on_demo_treasury_transactions_updated on public.demo_treasury_transactions;
+create trigger on_demo_treasury_transactions_updated
+before update on public.demo_treasury_transactions
 for each row
 execute procedure public.handle_demo_updated_at();
 
@@ -91,3 +130,19 @@ for update
 to authenticated
 using (((select auth.uid()) = owner_id) or owner_id is null)
 with check (((select auth.uid()) = owner_id) or owner_id is null);
+
+drop policy if exists "Owners can manage own notifications" on public.demo_notifications;
+create policy "Owners can manage own notifications"
+on public.demo_notifications
+for all
+to authenticated
+using ((select auth.uid()) = owner_id)
+with check ((select auth.uid()) = owner_id);
+
+drop policy if exists "Owners can manage own treasury transactions" on public.demo_treasury_transactions;
+create policy "Owners can manage own treasury transactions"
+on public.demo_treasury_transactions
+for all
+to authenticated
+using ((select auth.uid()) = owner_id)
+with check ((select auth.uid()) = owner_id);

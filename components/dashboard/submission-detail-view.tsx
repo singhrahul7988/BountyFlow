@@ -1,7 +1,11 @@
+import { useState } from "react";
 import Link from "next/link";
 
 import { EvidenceUploadsPanel } from "@/components/evidence/evidence-uploads-panel";
+import { openRemoteSubmissionDispute } from "@/lib/demo-api";
+import { getLinkedAdminSubmissionId } from "@/lib/demo-lifecycle";
 import type { ResearcherSubmission } from "@/lib/dashboard-data";
+import { useDemoDataStore } from "@/lib/stores/demo-data-store";
 import { formatCurrency } from "@/lib/utils";
 import { StatusChip } from "../home/status-chip";
 
@@ -22,6 +26,53 @@ function scoreTone(score: number) {
 }
 
 export function SubmissionDetailView({ submission }: { submission: ResearcherSubmission }) {
+  const [isDisputeOpen, setIsDisputeOpen] = useState(false);
+  const [isSubmittingDispute, setIsSubmittingDispute] = useState(false);
+  const [disputeReason, setDisputeReason] = useState("");
+  const [disputeJustification, setDisputeJustification] = useState("");
+  const [disputeDesiredPct, setDisputeDesiredPct] = useState(80);
+  const [disputeError, setDisputeError] = useState("");
+  const syncRemoteSubmissions = useDemoDataStore((state) => state.syncRemoteSubmissions);
+  const applySubmissionDecision = useDemoDataStore((state) => state.applySubmissionDecision);
+  const submissionDecisions = useDemoDataStore((state) => state.submissionDecisions);
+  const adminId = getLinkedAdminSubmissionId(submission.id);
+  const currentDecision = adminId ? submissionDecisions[adminId] : undefined;
+
+  async function handleOpenDispute() {
+    if (!adminId || !disputeReason.trim() || !disputeJustification.trim()) {
+      setDisputeError("Add a dispute reason and a justification before opening the dispute.");
+      return;
+    }
+
+    setIsSubmittingDispute(true);
+    setDisputeError("");
+
+    try {
+      const persisted = await openRemoteSubmissionDispute(submission.id, {
+        reason: disputeReason.trim(),
+        desiredPct: disputeDesiredPct,
+        justification: disputeJustification.trim()
+      });
+      syncRemoteSubmissions({
+        adminSubmissions: [persisted.adminSubmission],
+        researcherSubmissions: [persisted.researcherSubmission],
+        decisions: {
+          [persisted.adminSubmission.id]: persisted.decision
+        }
+      });
+      applySubmissionDecision(persisted.adminSubmission.id, persisted.decision);
+      setIsDisputeOpen(false);
+    } catch (error) {
+      setDisputeError(
+        error instanceof Error
+          ? error.message
+          : "Unable to open the dispute right now."
+      );
+    } finally {
+      setIsSubmittingDispute(false);
+    }
+  }
+
   return (
     <section className="bf-shell pt-32 pb-24">
       <div className="space-y-10">
@@ -128,6 +179,97 @@ export function SubmissionDetailView({ submission }: { submission: ResearcherSub
                 </Link>
               ) : null}
             </div>
+
+            {submission.status === "DISPUTE WINDOW" ? (
+              <div className="bg-surface-low p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-3">
+                    <p className="bf-label text-primary">DISPUTE WINDOW</p>
+                    <p className="text-sm leading-7 text-muted">
+                      You can challenge the approved payout percentage during the 48-hour dispute
+                      window if the finding was undervalued.
+                    </p>
+                    {currentDecision ? (
+                      <p className="bf-data text-[0.9rem] text-primary">
+                        CURRENT APPROVED PCT: {currentDecision.payoutPct}%
+                      </p>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDisputeOpen((current) => !current)}
+                    className="bf-button-secondary"
+                  >
+                    {isDisputeOpen ? "CANCEL" : "OPEN DISPUTE"}
+                  </button>
+                </div>
+
+                {isDisputeOpen ? (
+                  <div className="mt-5 space-y-4">
+                    <label className="space-y-2">
+                      <span className="bf-label text-foreground">REASON</span>
+                      <textarea
+                        value={disputeReason}
+                        maxLength={500}
+                        onChange={(event) => setDisputeReason(event.target.value)}
+                        className="bf-terminal-input min-h-[110px] resize-y"
+                        placeholder="Why does this finding deserve a higher payout percentage?"
+                      />
+                    </label>
+
+                    <label className="space-y-2">
+                      <span className="bf-label text-foreground">DESIRED PERCENTAGE</span>
+                      <div className="flex flex-wrap gap-2">
+                        {[60, 80, 100].map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setDisputeDesiredPct(value)}
+                            className={`bf-button-secondary px-3 py-2 ${
+                              disputeDesiredPct === value ? "border-primary text-primary" : ""
+                            }`}
+                          >
+                            {value}%
+                          </button>
+                        ))}
+                      </div>
+                    </label>
+
+                    <label className="space-y-2">
+                      <span className="bf-label text-foreground">JUSTIFICATION</span>
+                      <textarea
+                        value={disputeJustification}
+                        maxLength={500}
+                        onChange={(event) => setDisputeJustification(event.target.value)}
+                        className="bf-terminal-input min-h-[110px] resize-y"
+                        placeholder="Cite completeness, exploitability, or impact evidence that supports the requested percentage."
+                      />
+                    </label>
+
+                    {disputeError ? <p className="text-sm leading-7 text-amber">{disputeError}</p> : null}
+
+                    <button
+                      type="button"
+                      onClick={() => void handleOpenDispute()}
+                      className="bf-button-primary justify-center"
+                      disabled={isSubmittingDispute}
+                    >
+                      {isSubmittingDispute ? "OPENING..." : "SUBMIT DISPUTE ->"}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {submission.status === "DISPUTE OPEN" && submission.dispute ? (
+              <div className="border-l-[3px] border-amber bg-amber/10 p-6">
+                <p className="bf-label text-amber">DISPUTE OPEN</p>
+                <p className="mt-3 text-sm leading-7 text-muted">{submission.dispute.reason}</p>
+                <p className="mt-3 bf-data text-[0.86rem] text-amber">
+                  REQUESTED {submission.dispute.desiredPct}% | CURRENT {submission.dispute.approvedPct}%
+                </p>
+              </div>
+            ) : null}
 
             {submission.txHash ? (
               <div className="bg-surface-low p-6">

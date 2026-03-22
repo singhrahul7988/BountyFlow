@@ -32,7 +32,8 @@ export async function PATCH(
     "DISPUTE WINDOW",
     "DISPUTE OPEN",
     "FIX IN PROGRESS",
-    "REJECTED"
+    "REJECTED",
+    "PAID"
   ];
 
   if (!allowedStatuses.includes(body.status)) {
@@ -82,7 +83,8 @@ export async function PATCH(
   const nextAdminSubmission = {
     ...normalized.adminSubmission,
     status: body.status,
-    recommendedPct: body.payoutPct
+    recommendedPct: body.payoutPct,
+    disputeNote: body.disputeNote ?? normalized.adminSubmission.disputeNote
   };
   const nextResearcherSubmission = applySubmissionDecisionToResearcher(
     normalized.researcherSubmission,

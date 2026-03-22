@@ -13,10 +13,18 @@ function activityTone(type: string) {
   return "bg-primary";
 }
 
-export function AdminOverview() {
+export function AdminOverview({
+  stats = adminOverviewStats,
+  healthBreakdown = adminHealthBreakdown,
+  recentActivity = adminRecentActivity
+}: {
+  stats?: typeof adminOverviewStats;
+  healthBreakdown?: typeof adminHealthBreakdown;
+  recentActivity?: typeof adminRecentActivity;
+}) {
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference - (adminHealthBreakdown.remainingPct / 100) * circumference;
+  const dashOffset = circumference - (healthBreakdown.remainingPct / 100) * circumference;
 
   return (
     <section className="p-6 md:p-8 xl:p-10">
@@ -32,7 +40,7 @@ export function AdminOverview() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-          {adminOverviewStats.map((stat) => (
+          {stats.map((stat) => (
             <article key={stat.label} className="space-y-4 bg-surface-high p-6">
               <p className="bf-label">{stat.label}</p>
               <p className={`bf-data text-[2.15rem] ${stat.tone}`}>{stat.value}</p>
@@ -80,11 +88,11 @@ export function AdminOverview() {
                   </defs>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <p className="bf-data text-[2rem] text-primary">{adminHealthBreakdown.remainingPct}%</p>
+                  <p className="bf-data text-[2rem] text-primary">{healthBreakdown.remainingPct}%</p>
                   <p className="bf-label">OF POOL REMAINING</p>
                   <p className="mt-2 text-sm leading-7 text-muted">
-                    {formatCurrency(adminHealthBreakdown.currentBalance, 0)} /{" "}
-                    {formatCurrency(adminHealthBreakdown.totalBalance, 0)}
+                    {formatCurrency(healthBreakdown.currentBalance, 0)} /{" "}
+                    {formatCurrency(healthBreakdown.totalBalance, 0)}
                   </p>
                 </div>
               </div>
@@ -93,20 +101,20 @@ export function AdminOverview() {
                 {[
                   {
                     label: "PAID OUT",
-                    amount: adminHealthBreakdown.paidOutAmount,
-                    width: adminHealthBreakdown.paidOutPct,
+                    amount: healthBreakdown.paidOutAmount,
+                    width: healthBreakdown.paidOutPct,
                     tone: "bg-amber"
                   },
                   {
                     label: "RESERVED",
-                    amount: adminHealthBreakdown.reservedAmount,
-                    width: adminHealthBreakdown.reservedPct,
+                    amount: healthBreakdown.reservedAmount,
+                    width: healthBreakdown.reservedPct,
                     tone: "bg-indigo"
                   },
                   {
                     label: "AVAILABLE",
-                    amount: adminHealthBreakdown.availableAmount,
-                    width: adminHealthBreakdown.availablePct,
+                    amount: healthBreakdown.availableAmount,
+                    width: healthBreakdown.availablePct,
                     tone: "bg-primary-gradient"
                   }
                 ].map((row) => (
@@ -126,7 +134,7 @@ export function AdminOverview() {
             </div>
 
             <p className="text-sm leading-7 text-primary">
-              IDLE FUNDS EARNING YIELD ON AAVE V3 | APY: {adminHealthBreakdown.apy}
+              IDLE FUNDS EARNING YIELD ON AAVE V3 | APY: {healthBreakdown.apy}
             </p>
           </section>
 
@@ -139,7 +147,7 @@ export function AdminOverview() {
             </div>
 
             <div className="space-y-4">
-              {adminRecentActivity.map((item) => (
+              {recentActivity.map((item) => (
                 <article key={item.id} className="flex gap-4 bg-background p-5">
                   <span className={`mt-1 h-3 w-3 shrink-0 ${activityTone(item.type)}`} />
                   <div className="space-y-2">

@@ -1,4 +1,5 @@
 import type { UploadedEvidenceFile } from "@/lib/dashboard-data";
+import type { SubmissionDisputeNote } from "@/lib/demo-types";
 
 export type AdminSubmissionSeverity = "CRITICAL" | "HIGH" | "MEDIUM";
 
@@ -8,7 +9,8 @@ export type AdminSubmissionStatus =
   | "DISPUTE WINDOW"
   | "DISPUTE OPEN"
   | "FIX IN PROGRESS"
-  | "REJECTED";
+  | "REJECTED"
+  | "PAID";
 
 export type AdminSubmission = {
   id: string;
@@ -37,11 +39,7 @@ export type AdminSubmission = {
     updatedAt: string;
   };
   internalNote?: string;
-  disputeNote?: {
-    reason: string;
-    requestedPct: number;
-    approvedPct: number;
-  };
+  disputeNote?: SubmissionDisputeNote;
 };
 
 export const adminSubmissions: AdminSubmission[] = [
@@ -202,7 +200,7 @@ export const adminSubmissions: AdminSubmission[] = [
     disputeNote: {
       reason:
         "Researcher claims the PoC demonstrates a full exploit path and should be compensated at the AI-recommended percentage.",
-      requestedPct: 80,
+      desiredPct: 80,
       approvedPct: 60
     }
   },

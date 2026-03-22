@@ -44,6 +44,7 @@ type DemoDataState = {
     adminSubmissions?: AdminSubmission[];
     decisions?: Record<string, SubmissionDecision>;
   }) => void;
+  syncRemoteNotifications: (notifications: AdminNotification[]) => void;
   setSubmissionPayoutPct: (id: string, payoutPct: number) => void;
   applySubmissionDecision: (id: string, next: SubmissionDecision) => void;
   markNotificationRead: (id: string) => void;
@@ -247,6 +248,22 @@ export const useDemoDataStore = create<DemoDataState>()(
               ...state.submissionDecisions,
               ...decisions
             }
+          };
+        }),
+      syncRemoteNotifications: (notifications) =>
+        set((state) => {
+          const next = [...notifications, ...state.notifications];
+          const seen = new Set<string>();
+
+          return {
+            notifications: next.filter((item) => {
+              if (seen.has(item.id)) {
+                return false;
+              }
+
+              seen.add(item.id);
+              return true;
+            })
           };
         }),
       setSubmissionPayoutPct: (id, payoutPct) =>

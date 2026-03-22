@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { getRoleFromProfile, isAllowedOwnerEmail } from "@/lib/auth";
-import { normalizeStoredBounty, normalizeStoredSubmission } from "@/lib/demo-persistence";
+import {
+  normalizeStoredBounty,
+  normalizeStoredNotification,
+  normalizeStoredSubmission
+} from "@/lib/demo-persistence";
+import type { AdminNotification } from "@/lib/admin-notifications-data";
 import type { AdminSubmission } from "@/lib/admin-submissions-data";
 import type { BountyDetail } from "@/lib/bounty-data";
 import type { ResearcherSubmission } from "@/lib/dashboard-data";
@@ -16,7 +21,8 @@ export async function GET() {
       bounties: [] satisfies BountyDetail[],
       adminSubmissions: [] satisfies AdminSubmission[],
       researcherSubmissions: [] satisfies ResearcherSubmission[],
-      decisions: {} satisfies Record<string, SubmissionDecision>
+      decisions: {} satisfies Record<string, SubmissionDecision>,
+      notifications: [] satisfies AdminNotification[]
     });
   }
 
@@ -39,7 +45,8 @@ export async function GET() {
   const [
     bountiesResult,
     ownerSubmissionResult,
-    researcherSubmissionResult
+    researcherSubmissionResult,
+    notificationsResult
   ] = await Promise.all([
     role === "owner"
       ? supabase
@@ -61,11 +68,21 @@ export async function GET() {
           .select("admin_id, researcher_submission_id, payload")
           .eq("researcher_user_id", user.id)
           .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+    role === "owner" && isAllowedOwnerEmail(user.email || "")
+      ? supabase
+          .from("demo_notifications")
+          .select("id, type, title, description, unread, action_label, action_href, created_at")
+          .eq("owner_id", user.id)
+          .order("created_at", { ascending: false })
       : Promise.resolve({ data: [], error: null })
   ]);
 
   const firstError =
-    bountiesResult.error || ownerSubmissionResult.error || researcherSubmissionResult.error;
+    bountiesResult.error ||
+    ownerSubmissionResult.error ||
+    researcherSubmissionResult.error ||
+    notificationsResult.error;
 
   if (firstError) {
     return NextResponse.json({ error: firstError.message }, { status: 500 });
@@ -86,6 +103,10 @@ export async function GET() {
   const adminSubmissions: AdminSubmission[] = [];
   const researcherSubmissions: ResearcherSubmission[] = [];
   const decisions: Record<string, SubmissionDecision> = {};
+  const notifications =
+    role === "owner"
+      ? (notificationsResult.data ?? []).map((row) => normalizeStoredNotification(row))
+      : [];
 
   allNormalized.forEach((entry) => {
     if (!entry) {
@@ -107,6 +128,7 @@ export async function GET() {
     bounties,
     adminSubmissions,
     researcherSubmissions,
-    decisions
+    decisions,
+    notifications
   });
 }

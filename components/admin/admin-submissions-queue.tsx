@@ -5,7 +5,10 @@ import { useMemo, useState } from "react";
 
 import { EvidenceUploadsPanel } from "@/components/evidence/evidence-uploads-panel";
 import { TerminalSelect } from "@/components/ui/terminal-select";
-import { updateRemoteSubmissionDecision } from "@/lib/demo-api";
+import {
+  resolveRemoteSubmissionDispute,
+  updateRemoteSubmissionDecision
+} from "@/lib/demo-api";
 import type { AdminSubmission } from "@/lib/admin-submissions-data";
 import type { SubmissionDecision } from "@/lib/demo-types";
 import { useDemoDataStore } from "@/lib/stores/demo-data-store";
@@ -161,6 +164,33 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
       }));
     } finally {
       setSavingDecisionById((current) => ({ ...current, [submissionId]: false }));
+    }
+  }
+
+  async function handleResolveDispute(submission: AdminSubmission, resolution: "ACCEPT_CLAIM" | "HOLD_ORIGINAL") {
+    setSavingDecisionById((current) => ({ ...current, [submission.id]: true }));
+    setDecisionErrorById((current) => ({ ...current, [submission.id]: "" }));
+
+    try {
+      const persisted = await resolveRemoteSubmissionDispute(submission.id, resolution);
+      syncRemoteSubmissions({
+        adminSubmissions: [persisted.adminSubmission],
+        researcherSubmissions: [persisted.researcherSubmission],
+        decisions: {
+          [persisted.adminSubmission.id]: persisted.decision
+        }
+      });
+      applySubmissionDecision(submission.id, persisted.decision);
+    } catch (error) {
+      setDecisionErrorById((current) => ({
+        ...current,
+        [submission.id]:
+          error instanceof Error
+            ? `${error.message} Dispute resolution was not persisted.`
+            : "Dispute resolution was not persisted."
+      }));
+    } finally {
+      setSavingDecisionById((current) => ({ ...current, [submission.id]: false }));
     }
   }
 
@@ -412,8 +442,13 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                     <p className="mt-2 text-sm leading-7 text-muted">
                       {submission.disputeNote.reason}
                     </p>
+                    {submission.disputeNote.justification ? (
+                      <p className="mt-2 text-sm leading-7 text-muted">
+                        {submission.disputeNote.justification}
+                      </p>
+                    ) : null}
                     <p className="mt-3 bf-data text-[0.85rem] text-amber">
-                      REQUESTED {submission.disputeNote.requestedPct}% | CURRENT{" "}
+                      REQUESTED {submission.disputeNote.desiredPct}% | CURRENT{" "}
                       {submission.disputeNote.approvedPct}%
                     </p>
                   </div>
@@ -564,36 +599,57 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                         </label>
                       ) : null}
 
-                      <div className="flex flex-col gap-3 xl:flex-row">
-                        <button
-                          type="button"
-                          onClick={() => handleApprove(submission.id)}
-                          className="bf-button-primary justify-center xl:flex-1"
-                          disabled={isSavingDecision}
-                        >
-                          {isSavingDecision ? "SAVING..." : "APPROVE & RELEASE USDT ->"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleManualReview(submission.id)}
-                          className="bf-button-secondary justify-center"
-                          disabled={isSavingDecision}
-                        >
-                          MARK FOR MANUAL REVIEW
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setRejectionModeById((current) => ({
-                              ...current,
-                              [submission.id]: !showRejectionBox
-                            }))
-                          }
-                          className="inline-flex items-center justify-center border border-danger/35 px-4 py-3 font-mono text-[0.75rem] uppercase tracking-label text-danger transition-colors duration-100 ease-linear hover:border-danger hover:bg-danger/10"
-                        >
-                          REJECT SUBMISSION
-                        </button>
-                      </div>
+                      {currentStatus === "DISPUTE OPEN" ? (
+                        <div className="flex flex-col gap-3 xl:flex-row">
+                          <button
+                            type="button"
+                            onClick={() => void handleResolveDispute(submission, "ACCEPT_CLAIM")}
+                            className="bf-button-primary justify-center xl:flex-1"
+                            disabled={isSavingDecision}
+                          >
+                            {isSavingDecision ? "RESOLVING..." : "ACCEPT RESEARCHER CLAIM ->"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleResolveDispute(submission, "HOLD_ORIGINAL")}
+                            className="bf-button-secondary justify-center"
+                            disabled={isSavingDecision}
+                          >
+                            HOLD AT ORIGINAL %
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-3 xl:flex-row">
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(submission.id)}
+                            className="bf-button-primary justify-center xl:flex-1"
+                            disabled={isSavingDecision}
+                          >
+                            {isSavingDecision ? "SAVING..." : "APPROVE & RELEASE USDT ->"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleManualReview(submission.id)}
+                            className="bf-button-secondary justify-center"
+                            disabled={isSavingDecision}
+                          >
+                            MARK FOR MANUAL REVIEW
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setRejectionModeById((current) => ({
+                                ...current,
+                                [submission.id]: !showRejectionBox
+                              }))
+                            }
+                            className="inline-flex items-center justify-center border border-danger/35 px-4 py-3 font-mono text-[0.75rem] uppercase tracking-label text-danger transition-colors duration-100 ease-linear hover:border-danger hover:bg-danger/10"
+                          >
+                            REJECT SUBMISSION
+                          </button>
+                        </div>
+                      )}
 
                       {showRejectionBox ? (
                         <button
