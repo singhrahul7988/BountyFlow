@@ -1,12 +1,18 @@
 import { cn } from "@/lib/utils";
 
-export function Logo({ className }: { className?: string }) {
+export function Logo({
+  className,
+  compact = false
+}: {
+  className?: string;
+  compact?: boolean;
+}) {
   return (
-    <div className={cn("flex items-center gap-3", className)}>
+    <div className={cn("flex items-center gap-2.5", className)}>
       <svg
         aria-hidden="true"
         viewBox="0 0 48 48"
-        className="h-8 w-8 text-primary"
+        className={cn(compact ? "h-6 w-6" : "h-7 w-7", "text-primary")}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
@@ -23,7 +29,12 @@ export function Logo({ className }: { className?: string }) {
           strokeLinejoin="miter"
         />
       </svg>
-      <span className="bf-display text-2xl font-bold tracking-tightHeading text-primary">
+      <span
+        className={cn(
+          compact ? "text-[1.35rem]" : "text-[1.7rem]",
+          "bf-display font-bold tracking-tightHeading text-primary"
+        )}
+      >
         BOUNTYFLOW
       </span>
     </div>

@@ -16,6 +16,7 @@ export type AuthUser = {
   email: string;
   role: UserRole;
   walletAddress: string;
+  walletLinked: boolean;
 };
 
 function hashToHex(value: string) {
@@ -94,6 +95,7 @@ export function mapSupabaseUser(
     name: profile?.full_name || user.email?.split("@")[0] || "BountyFlow User",
     email: profile?.email || user.email || "",
     role,
-    walletAddress: profile?.wallet_address || buildWalletAddress(user.id)
+    walletAddress: profile?.wallet_address || buildWalletAddress(user.id),
+    walletLinked: Boolean(profile?.wallet_address)
   };
 }

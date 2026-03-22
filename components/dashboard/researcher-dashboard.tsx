@@ -15,6 +15,7 @@ import { leaderboardRows } from "@/lib/mock-data";
 import { useAppStore } from "@/lib/stores/app-store";
 import { formatCurrency, truncateAddress } from "@/lib/utils";
 import { StatusChip } from "../home/status-chip";
+import { WalletLinkButton } from "../wallet/wallet-link-button";
 
 const filters = ["ALL", "ACTIVE", "UNDER REVIEW", "RESOLVED", "REJECTED"] as const;
 
@@ -136,11 +137,16 @@ export function ResearcherDashboard({
             </Link>
 
             {hasHydrated && currentUser ? (
-              <div className="flex items-center gap-3 bg-surface-high px-4 py-3">
-                <span className="h-2 w-2 animate-pulse-dot bg-primary" />
-                <span className="bf-data text-[0.9rem] text-foreground">
-                  {truncateAddress(currentUser.walletAddress)}
-                </span>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-3 bg-surface-high px-4 py-3">
+                  <span className="h-2 w-2 animate-pulse-dot bg-primary" />
+                  <span className="bf-data text-[0.9rem] text-foreground">
+                    {currentUser.walletLinked
+                      ? truncateAddress(currentUser.walletAddress)
+                      : "PAYOUT WALLET NOT LINKED"}
+                  </span>
+                </div>
+                <WalletLinkButton className="justify-center" />
               </div>
             ) : (
               <div className="flex items-center gap-3 bg-surface-high px-4 py-3">

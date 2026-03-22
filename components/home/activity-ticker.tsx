@@ -25,21 +25,21 @@ export function ActivityTicker({
 
   return (
     <div className="bg-background py-3">
-      <div className="bf-shell">
+      <div className="bf-shell mx-auto max-w-[1420px]">
         <div
-          className={cn(styles.marquee, "bf-panel py-3")}
+          className={cn(styles.marquee, "bf-panel py-2.5")}
           style={{ ["--duration" as string]: `${speed}s` }}
         >
           <div className={styles.marqueeTrack}>
             {loopedItems.map((item, index) => (
-              <div key={`${item.id}-${index}`} className="flex items-center gap-3 px-3">
-                <span className="bf-data text-[0.64rem] uppercase text-foreground">{item.label}</span>
+              <div key={`${item.id}-${index}`} className="flex items-center gap-2.5 px-2.5">
+                <span className="bf-data text-[0.6rem] uppercase text-foreground">{item.label}</span>
                 {item.amount ? (
-                  <span className={cn("bf-data text-[0.64rem] uppercase", emphasisClass(item.emphasis))}>
+                  <span className={cn("bf-data text-[0.6rem] uppercase", emphasisClass(item.emphasis))}>
                     {item.amount}
                   </span>
                 ) : null}
-                <span className="bf-data text-[0.64rem] uppercase text-outline-variant">|</span>
+                <span className="bf-data text-[0.6rem] uppercase text-outline-variant">|</span>
               </div>
             ))}
           </div>

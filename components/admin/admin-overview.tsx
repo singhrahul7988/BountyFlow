@@ -31,7 +31,7 @@ export function AdminOverview({
       <div className="space-y-10">
         <div className="space-y-4">
           <p className="bf-label text-primary">PROJECT OWNER ENTRY</p>
-          <h1 className="bf-display text-[2.7rem] leading-none tracking-tightHeading sm:text-[3.9rem]">
+          <h1 className="bf-display text-[2.9rem] leading-none tracking-tightHeading sm:text-[4.1rem]">
             OVERVIEW
           </h1>
           <p className="text-sm leading-8 text-muted">
@@ -43,23 +43,23 @@ export function AdminOverview({
           {stats.map((stat) => (
             <article key={stat.label} className="space-y-4 bg-surface-high p-6">
               <p className="bf-label">{stat.label}</p>
-              <p className={`bf-data text-[2.15rem] ${stat.tone}`}>{stat.value}</p>
+              <p className={`bf-data text-[2.25rem] ${stat.tone}`}>{stat.value}</p>
               <p className="text-sm leading-7 text-muted">{stat.detail}</p>
             </article>
           ))}
         </div>
 
         <div className="grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
-          <section className="space-y-6 bg-surface-high p-7 md:p-8">
+          <section className="space-y-5 bg-surface-high p-6 md:p-7">
             <div className="space-y-3">
               <p className="bf-label text-primary">BOUNTY HEALTH</p>
-              <h2 className="bf-display text-[1.5rem] leading-none tracking-tightHeading">
+              <h2 className="bf-display text-[1.65rem] leading-none tracking-tightHeading">
                 TREASURY REMAINING
               </h2>
             </div>
 
-            <div className="grid gap-8 lg:grid-cols-[0.62fr_0.38fr] lg:items-center">
-              <div className="relative mx-auto h-[180px] w-[180px]">
+            <div className="grid gap-6 lg:grid-cols-[0.58fr_0.42fr] lg:items-center">
+              <div className="relative mx-auto h-[170px] w-[170px]">
                 <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
                   <circle
                     cx="70"
@@ -88,16 +88,16 @@ export function AdminOverview({
                   </defs>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <p className="bf-data text-[2rem] text-primary">{healthBreakdown.remainingPct}%</p>
+                  <p className="bf-data text-[2.1rem] text-primary">{healthBreakdown.remainingPct}%</p>
                   <p className="bf-label">OF POOL REMAINING</p>
-                  <p className="mt-2 text-sm leading-7 text-muted">
+                  <p className="mt-1.5 text-sm leading-6 text-muted">
                     {formatCurrency(healthBreakdown.currentBalance, 0)} /{" "}
                     {formatCurrency(healthBreakdown.totalBalance, 0)}
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {[
                   {
                     label: "PAID OUT",
@@ -121,11 +121,14 @@ export function AdminOverview({
                   <div key={row.label} className="space-y-2">
                     <div className="flex items-center justify-between gap-4">
                       <span className="bf-label text-foreground">{row.label}</span>
-                      <span className="bf-data text-[0.9rem] text-foreground">
-                        {formatCurrency(row.amount, 0)}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="bf-label text-muted">{row.width}%</span>
+                        <span className="bf-data text-[0.88rem] text-foreground">
+                          {formatCurrency(row.amount, 0)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="h-[8px] bg-background">
+                    <div className="h-[9px] bg-background">
                       <div className={`h-full ${row.tone}`} style={{ width: `${row.width}%` }} />
                     </div>
                   </div>

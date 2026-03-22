@@ -12,6 +12,7 @@ type AppState = {
   toggleMobileNav: () => void;
   signIn: (user: AuthUser) => void;
   signOut: () => void;
+  updateWalletAddress: (walletAddress: string) => void;
   setHydrated: (value: boolean) => void;
 };
 
@@ -26,6 +27,17 @@ export const useAppStore = create<AppState>()(
     toggleMobileNav: () => set((state) => ({ isMobileNavOpen: !state.isMobileNavOpen })),
     signIn: (user) => set({ currentUser: user, walletAddress: user.walletAddress }),
     signOut: () => set({ currentUser: null, walletAddress: null }),
+    updateWalletAddress: (walletAddress) =>
+      set((state) => ({
+        walletAddress,
+        currentUser: state.currentUser
+          ? {
+              ...state.currentUser,
+              walletAddress,
+              walletLinked: true
+            }
+          : null
+      })),
     setHydrated: (value) => set({ hasHydrated: value })
   })
 );

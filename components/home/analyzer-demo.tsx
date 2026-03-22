@@ -88,16 +88,16 @@ export function AnalyzerDemo() {
   }
 
   return (
-    <div className="bf-panel grid gap-0 overflow-hidden lg:grid-cols-[1.05fr_0.95fr]" data-reveal="zoom">
-      <div className="space-y-5 p-5 md:p-6" data-reveal="left" style={{ ["--reveal-order" as string]: 0 }}>
+    <div className="bf-panel grid gap-0 overflow-hidden lg:grid-cols-[1.02fr_0.98fr]" data-reveal="zoom">
+      <div className="space-y-4.5 p-4.5 md:p-5" data-reveal="left" style={{ ["--reveal-order" as string]: 0 }}>
         <div className="space-y-2">
-          <h2 className="bf-display text-[1.8rem] leading-none tracking-tightHeading sm:text-[2.2rem]">
+          <h2 className="bf-display text-[1.55rem] leading-none tracking-tightHeading sm:text-[1.9rem]">
             TEST YOUR
             <span className="block bg-primary-gradient bg-clip-text text-transparent">
               EXPLOIT LOGIC
             </span>
           </h2>
-          <p className="max-w-lg text-[0.84rem] leading-6 text-muted sm:text-[0.9rem]">
+          <p className="max-w-lg text-[0.78rem] leading-6 text-muted sm:text-[0.84rem]">
             Run a simulated agent pass against a candidate exploit path before you submit.
           </p>
         </div>
@@ -109,7 +109,7 @@ export function AnalyzerDemo() {
               <button
                 type="button"
                 onClick={() => setPayload(samplePayloads[vulnerabilityType])}
-                className="bf-button-tertiary text-[0.58rem]"
+                className="bf-button-tertiary text-[0.54rem]"
               >
                 LOAD SAMPLE
               </button>
@@ -127,20 +127,20 @@ export function AnalyzerDemo() {
             <textarea
               value={payload}
               onChange={(event) => setPayload(event.target.value)}
-              className="bf-terminal-input min-h-[11rem] resize-y text-[0.72rem] leading-6 text-muted caret-primary"
+              className="bf-terminal-input min-h-[9.5rem] resize-y text-[0.68rem] leading-6 text-muted caret-primary"
               placeholder="Write your payload here"
               spellCheck={false}
               aria-label="POC payload"
             />
           </div>
 
-          {error ? <p className="text-[0.74rem] leading-6 text-error">{error}</p> : null}
+          {error ? <p className="text-[0.7rem] leading-6 text-error">{error}</p> : null}
 
           <button
             type="button"
             onClick={handleAnalyze}
             disabled={!payload.trim() || isAnalyzing}
-            className="bf-button-primary w-full justify-center px-5 py-2.5 text-[0.68rem]"
+            className="bf-button-primary w-full justify-center px-4.5 py-2.25 text-[0.64rem]"
           >
             {isAnalyzing ? "RUNNING AI ANALYSIS..." : "RUN AI ANALYSIS"}
           </button>
@@ -148,7 +148,7 @@ export function AnalyzerDemo() {
       </div>
 
       <div
-        className="border-l border-outline-variant/20 bg-surface-high p-5 md:p-6"
+        className="border-l border-outline-variant/20 bg-surface-high p-4.5 md:p-5"
         data-reveal="right"
         style={{ ["--reveal-order" as string]: 1 }}
       >

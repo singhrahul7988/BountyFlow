@@ -20,9 +20,9 @@ export function LiveListingsCarousel({ items }: { items: BountyCardData[] }) {
   }
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-6">
       <div className="flex items-center justify-between gap-4" data-reveal="zoom">
-        <h2 className="bf-display text-[1.95rem] leading-none tracking-tightHeading sm:text-[2.8rem]">
+        <h2 className="bf-display text-[1.7rem] leading-none tracking-tightHeading sm:text-[2.35rem]">
           LIVE LISTINGS
         </h2>
         <div className="flex items-center gap-2">
@@ -30,9 +30,9 @@ export function LiveListingsCarousel({ items }: { items: BountyCardData[] }) {
             type="button"
             onClick={handlePrev}
             aria-label="Previous bounties"
-            className="flex h-10 w-10 items-center justify-center border border-outline/20 bg-transparent text-primary transition-colors duration-100 ease-linear hover:border-outline/50"
+            className="flex h-9 w-9 items-center justify-center border border-outline/20 bg-transparent text-primary transition-colors duration-100 ease-linear hover:border-outline/50"
           >
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M15 5L8 12L15 19" />
             </svg>
           </button>
@@ -40,16 +40,16 @@ export function LiveListingsCarousel({ items }: { items: BountyCardData[] }) {
             type="button"
             onClick={handleNext}
             aria-label="Next bounties"
-            className="flex h-10 w-10 items-center justify-center border border-outline/20 bg-transparent text-primary transition-colors duration-100 ease-linear hover:border-outline/50"
+            className="flex h-9 w-9 items-center justify-center border border-outline/20 bg-transparent text-primary transition-colors duration-100 ease-linear hover:border-outline/50"
           >
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M9 5L16 12L9 19" />
             </svg>
           </button>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
         {visibleItems.map((item, index) => (
           <div
             key={`${item.title}-${item.rewardPool}-${index}`}

@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { WagmiProvider } from "wagmi";
 
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { getAuthUserFromProfile } from "@/lib/supabase/profiles";
 import { useAppStore } from "@/lib/stores/app-store";
+import { wagmiConfig } from "@/lib/web3/wagmi-config";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => (hasSupabaseEnv() ? createClient() : null));
@@ -66,5 +68,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     };
   }, [setHydrated, signIn, signOut, supabase]);
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </WagmiProvider>
+  );
 }

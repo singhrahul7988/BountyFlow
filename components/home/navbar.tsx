@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { useAppStore } from "@/lib/stores/app-store";
 import { truncateAddress } from "@/lib/utils";
+import { WalletLinkButton } from "../wallet/wallet-link-button";
 import { Logo } from "./logo";
 
 export function Navbar() {
@@ -48,21 +49,21 @@ export function Navbar() {
       <header
         className="fixed inset-x-0 top-0 z-50"
         style={{
-          background: "rgba(27, 27, 32, 0.7)",
+          background: "rgba(27, 27, 32, 0.78)",
           backdropFilter: `blur(${isCompressed ? 32 : 24}px)`
         }}
       >
-        <div className={`bf-shell flex items-center justify-between gap-5 transition-all duration-100 ease-linear ${isCompressed ? "py-3" : "py-4"}`}>
+        <div className={`bf-shell mx-auto flex w-full max-w-[1420px] items-center justify-between gap-5 transition-all duration-100 ease-linear ${isCompressed ? "py-3" : "py-4.5"}`}>
           <Link href="/" onClick={closeMobileNav}>
             <Logo />
           </Link>
 
-          <nav className="hidden items-center gap-6 lg:flex">
+          <nav className="hidden items-center gap-5 lg:flex">
             {navLinks.map((link) => (
               <Link
                 key={link.label}
                 href={link.href}
-                className="font-mono text-[0.72rem] uppercase tracking-label text-muted transition-colors duration-100 ease-linear hover:text-primary"
+                className="font-mono text-[0.68rem] uppercase tracking-label text-muted transition-colors duration-100 ease-linear hover:text-primary"
               >
                 {link.label}
               </Link>
@@ -74,13 +75,20 @@ export function Navbar() {
               <>
                 <Link
                   href={getDefaultRouteForRole(currentUser.role)}
-                  className="bf-button-secondary px-4 py-2.5 text-[0.68rem] text-foreground"
+                  className="bf-button-secondary px-3.5 py-2.25 text-[0.64rem] text-foreground"
                 >
-                  {truncateAddress(walletAddress || currentUser.walletAddress)}
+                  {currentUser.walletLinked
+                    ? truncateAddress(walletAddress || currentUser.walletAddress)
+                    : "DASHBOARD"}
                 </Link>
+                <WalletLinkButton
+                  className="px-3.5 py-2.25 text-[0.64rem]"
+                  showHelperText={false}
+                  showInlineFeedback={false}
+                />
                 <button
                   type="button"
-                  className="bf-button-primary px-4 py-2.5 text-[0.68rem]"
+                  className="bf-button-primary px-3.5 py-2.25 text-[0.64rem]"
                   onClick={async () => {
                     await supabase?.auth.signOut();
                     signOut();
@@ -94,13 +102,13 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <Link href={dashboardHref} className="bf-button-secondary px-4 py-2.5 text-[0.68rem]">
+                <Link href={dashboardHref} className="bf-button-secondary px-3.5 py-2.25 text-[0.64rem]">
                   DASHBOARD
                 </Link>
-                <Link href="/auth" className="bf-button-secondary px-4 py-2.5 text-[0.68rem]">
+                <Link href="/auth" className="bf-button-secondary px-3.5 py-2.25 text-[0.64rem]">
                   SIGN IN
                 </Link>
-                <Link href="/auth" className="bf-button-primary px-4 py-2.5 text-[0.68rem]">
+                <Link href="/auth" className="bf-button-primary px-3.5 py-2.25 text-[0.64rem]">
                   SIGN UP
                 </Link>
               </>
@@ -142,8 +150,15 @@ export function Navbar() {
                   onClick={closeMobileNav}
                   className="bf-button-secondary justify-center"
                 >
-                  {truncateAddress(walletAddress || currentUser.walletAddress)}
+                  {currentUser.walletLinked
+                    ? truncateAddress(walletAddress || currentUser.walletAddress)
+                    : "DASHBOARD"}
                 </Link>
+                <WalletLinkButton
+                  className="justify-center"
+                  showHelperText={false}
+                  showInlineFeedback={false}
+                />
                 <button
                   type="button"
                   className="bf-button-primary justify-center"

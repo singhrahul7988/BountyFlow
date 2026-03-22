@@ -22,3 +22,7 @@ pnpm-debug.log*
 # misc
 .DS_Store
 Thumbs.db
+
+# local docs
+bountyflow.md
+design.md

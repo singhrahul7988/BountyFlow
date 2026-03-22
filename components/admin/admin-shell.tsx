@@ -14,6 +14,7 @@ import { useAuthenticatedDemoStateSync } from "@/lib/use-demo-sync";
 import { cn, truncateAddress } from "@/lib/utils";
 import { Logo } from "../home/logo";
 import { StatusChip } from "../home/status-chip";
+import { WalletLinkButton } from "../wallet/wallet-link-button";
 
 const navItems = [
   {
@@ -125,19 +126,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground lg:flex">
-      <aside className="bg-surface-low lg:fixed lg:inset-y-0 lg:left-0 lg:w-[240px]">
-        <div className="flex h-full flex-col gap-8 p-6">
+      <aside className="bg-surface-low lg:fixed lg:inset-y-0 lg:left-0 lg:w-[252px]">
+        <div className="flex h-full flex-col gap-7 p-5">
           <Link href="/admin">
-            <Logo />
+            <Logo compact className="max-w-full" />
           </Link>
 
-          <div className="space-y-4 bg-background p-4">
+          <div className="space-y-3 bg-background p-4">
             <div className="flex items-start justify-between gap-3">
-              <div className="space-y-2">
-                <p className="bf-label">ACTIVE BOUNTY</p>
-                <p className="bf-display text-[1.05rem] leading-none tracking-tightHeading">
+              <div className="space-y-1.5">
+                <p className="bf-display text-[0.96rem] leading-none tracking-tightHeading">
                   {adminBountyContext.name}
                 </p>
+                <p className="bf-label text-muted">CURRENT PROGRAM</p>
               </div>
               <StatusChip status={adminBountyContext.status} />
             </div>
@@ -182,10 +183,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   <div className="flex items-center gap-3">
                     <span className="h-2 w-2 animate-pulse-dot bg-primary" />
                     <span className="bf-data text-[0.82rem] text-muted">
-                      {truncateAddress(currentUser.walletAddress)}
+                      {currentUser.walletLinked
+                        ? truncateAddress(currentUser.walletAddress)
+                        : "NOT LINKED"}
                     </span>
                   </div>
                 </div>
+                <WalletLinkButton className="w-full justify-center" />
                 <button
                   type="button"
                   onClick={async () => {
@@ -209,7 +213,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="min-h-screen flex-1 lg:ml-[240px]">{children}</main>
+      <main className="min-h-screen flex-1 lg:ml-[252px]">{children}</main>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
 import { getResearcherSubmissionById } from "@/lib/dashboard-data";
 import {
   createOwnerNotification,
+  getOnchainMode,
   insertTreasuryTransaction,
   performTreasuryTransfer
 } from "@/lib/onchain/service";
@@ -56,7 +57,7 @@ export async function PATCH(
 
   let { data: row, error } = await supabase
     .from("demo_submissions")
-    .select("admin_id, researcher_submission_id, payload, owner_id")
+    .select("admin_id, researcher_submission_id, payload, owner_id, researcher_user_id")
     .eq("admin_id", params.id)
     .maybeSingle();
 
@@ -65,6 +66,16 @@ export async function PATCH(
   }
 
   if (!row) {
+    if (getOnchainMode() === "live") {
+      return NextResponse.json(
+        {
+          error:
+            "Live settlement requires a persisted researcher submission with a linked payout wallet. Seed-only review rows can be resolved only in mock mode."
+        },
+        { status: 400 }
+      );
+    }
+
     const seededAdmin = getAdminSubmissionById(params.id);
     const seededResearcher = getResearcherSubmissionById(
       `sub-${params.id.replace(/^BF-/, "")}`
@@ -96,7 +107,7 @@ export async function PATCH(
         },
         { onConflict: "admin_id" }
       )
-      .select("admin_id, researcher_submission_id, payload, owner_id")
+      .select("admin_id, researcher_submission_id, payload, owner_id, researcher_user_id")
       .single();
 
     if (insertError) {
@@ -125,12 +136,38 @@ export async function PATCH(
       ? normalized.decision.disputeNote.desiredPct
       : normalized.decision.disputeNote.approvedPct;
   const payoutAmount = Math.round((normalized.adminSubmission.tierReward * finalPct) / 100);
+  let payoutRecipient: string | undefined;
+
+  if (getOnchainMode() === "live") {
+    const { profile: researcherProfile, error: profileError } = await getProfileByUserId(
+      supabase,
+      row.researcher_user_id
+    );
+
+    if (profileError) {
+      return NextResponse.json({ error: profileError.message }, { status: 500 });
+    }
+
+    payoutRecipient = researcherProfile?.wallet_address || undefined;
+
+    if (!payoutRecipient) {
+      return NextResponse.json(
+        {
+          error:
+            "The researcher has not linked a payout wallet yet. Link a wallet before releasing live settlement."
+        },
+        { status: 400 }
+      );
+    }
+  }
+
   const tx = await performTreasuryTransfer({
     ownerId: row.owner_id || user.id,
     bountySlug: normalized.researcherSubmission.bountySlug,
     amount: payoutAmount,
     type: "PAYOUT",
-    description: `Resolved dispute for ${normalized.adminSubmission.id} and released payout.`
+    description: `Resolved dispute for ${normalized.adminSubmission.id} and released payout.`,
+    recipient: payoutRecipient
   });
 
   const nextDecision: SubmissionDecision = {

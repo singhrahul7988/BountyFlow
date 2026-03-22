@@ -68,16 +68,16 @@ export function AIScoreDisplay({
   }, [animate, score]);
 
   return (
-    <div ref={ref} className="space-y-5">
+    <div ref={ref} className="space-y-4.5">
       {title ? (
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-1.5">
-            <span className="bf-label text-[0.64rem] text-primary">{title}</span>
+            <span className="bf-label text-[0.6rem] text-primary">{title}</span>
             {subtitle ? <p className="bf-label">{subtitle}</p> : null}
           </div>
           <svg
             viewBox="0 0 20 20"
-            className="h-4 w-4 text-primary"
+            className="h-3.5 w-3.5 text-primary"
             fill="none"
             stroke="currentColor"
             strokeWidth="1.8"
@@ -88,17 +88,17 @@ export function AIScoreDisplay({
         </div>
       ) : null}
 
-      <div className="flex items-end gap-3">
-        <span className="bf-data text-5xl text-primary">{formattedScore}</span>
-        <span className="bf-data text-xl text-muted">/ 10</span>
+      <div className="flex items-end gap-2.5">
+        <span className="bf-data text-[2.6rem] text-primary">{formattedScore}</span>
+        <span className="bf-data text-[1.05rem] text-muted">/ 10</span>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {subScores.map((metric, index) => (
           <div key={metric.label} className="space-y-2" style={{ transitionDelay: `${index * 100}ms` }}>
             <div className="flex items-center justify-between gap-4">
-              <span className="bf-label text-[0.64rem] text-foreground">{metric.label}</span>
-              <span className="bf-data text-[0.78rem] text-foreground">{Math.round(metric.value * 100)}%</span>
+              <span className="bf-label text-[0.6rem] text-foreground">{metric.label}</span>
+              <span className="bf-data text-[0.72rem] text-foreground">{Math.round(metric.value * 100)}%</span>
             </div>
             <div className="h-[5px] bg-background">
               <div
@@ -110,14 +110,14 @@ export function AIScoreDisplay({
         ))}
       </div>
 
-      <div className="space-y-2.5 bg-background p-4">
-        <span className="bf-label text-[0.64rem] text-primary">ANALYZING SUBMISSION...</span>
-        <p className="text-[0.84rem] leading-7 text-foreground">{reasoning}</p>
+      <div className="space-y-2 bg-background p-3.5">
+        <span className="bf-label text-[0.6rem] text-primary">ANALYZING SUBMISSION...</span>
+        <p className="text-[0.78rem] leading-6 text-foreground">{reasoning}</p>
       </div>
 
       <div className="flex items-center justify-between gap-4">
-        <span className="bf-label text-[0.64rem]">RECOMMENDED PAYOUT</span>
-        <span className="bf-data text-[1.05rem] text-primary">{recommendedPct}%</span>
+        <span className="bf-label text-[0.6rem]">RECOMMENDED PAYOUT</span>
+        <span className="bf-data text-[0.96rem] text-primary">{recommendedPct}%</span>
       </div>
     </div>
   );

@@ -70,20 +70,26 @@ export function BountyCard({
           >
             {formatCurrency(rewardPool, 0)} USDT
           </p>
-          <div className={`flex flex-wrap content-start gap-2 ${compact ? "min-h-[4rem]" : "min-h-[4.9rem]"}`}>
+          <div className={`flex flex-wrap content-start gap-1.5 ${compact ? "min-h-[3.3rem]" : "min-h-[4.5rem]"}`}>
             {tiers.map((tier) => (
               <span
                 key={tier}
                 className={`bg-surface-high font-mono uppercase tracking-label text-muted ${
-                  compact ? "px-1.5 py-1 text-[0.56rem]" : "px-2 py-1 text-[0.62rem]"
+                  compact ? "px-1 py-[0.22rem] text-[0.38rem]" : "px-1.5 py-[0.34rem] text-[0.54rem]"
                 }`}
               >
                 {tier}
               </span>
             ))}
           </div>
-          <div className={`flex items-end justify-between pt-1 ${compact ? "min-h-[2.5rem] gap-2.5" : "min-h-[3rem] gap-3"}`}>
-            <span className={`bf-label max-w-[7rem] ${compact ? "text-[0.58rem]" : "text-[0.64rem]"}`}>{status}</span>
+          <div
+            className={`flex items-end pt-1 ${
+              compact ? "min-h-[2.1rem] justify-end gap-2.5" : "min-h-[3rem] justify-between gap-3"
+            }`}
+          >
+            {!compact ? (
+              <span className="bf-label max-w-[7rem] text-[0.64rem]">{status}</span>
+            ) : null}
             <Link
               href={href ?? (slug ? `/bounty/${slug}` : "/bounties")}
               className={`bf-button-secondary text-foreground ${

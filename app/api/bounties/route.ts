@@ -5,6 +5,7 @@ import { normalizeStoredBounty } from "@/lib/demo-persistence";
 import type { BountyDetail } from "@/lib/bounty-data";
 import {
   createOwnerNotification,
+  getOnchainMode,
   insertTreasuryTransaction,
   performTreasuryTransfer,
   provisionEscrowWallet
@@ -75,7 +76,8 @@ export async function POST(request: Request) {
     bountySlug: bounty.slug,
     amount: bounty.rewardPool,
     type: "DEPOSIT",
-    description: `Owner funded ${bounty.title} and armed the escrow wallet.`
+    description: `Owner funded ${bounty.title} and armed the escrow wallet.`,
+    recipient: escrowWallet.address
   });
   const nextBounty = {
     ...bounty,
@@ -129,7 +131,10 @@ export async function POST(request: Request) {
       ownerId: user.id,
       type: "PAYOUT",
       title: `${nextBounty.title} escrow funded`,
-      description: "The mock on-chain funding flow completed and treasury tracking is now live.",
+      description:
+        getOnchainMode() === "live"
+          ? "The live on-chain funding flow completed and treasury tracking is now live."
+          : "The mock on-chain funding flow completed and treasury tracking is now live.",
       actionLabel: "VIEW TREASURY ->",
       actionHref: "/admin/treasury"
     });

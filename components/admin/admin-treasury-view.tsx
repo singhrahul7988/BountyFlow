@@ -72,10 +72,10 @@ export function AdminTreasuryView({
 
   return (
     <section className="p-6 md:p-8 xl:p-10">
-      <div className="space-y-10">
+      <div className="space-y-9">
         <div className="space-y-4">
           <p className="bf-label text-primary">OWNER TREASURY</p>
-          <h1 className="bf-display text-[2.7rem] leading-none tracking-tightHeading sm:text-[3.9rem]">
+          <h1 className="bf-display text-[2.9rem] leading-none tracking-tightHeading sm:text-[4.1rem]">
             TREASURY
           </h1>
         </div>
@@ -115,17 +115,17 @@ export function AdminTreasuryView({
           </article>
         </div>
 
-        <div className="grid gap-8 xl:grid-cols-[0.9fr_1.1fr]">
-          <section className="space-y-6 bg-surface-high p-7 md:p-8">
+        <div className="grid gap-6 xl:grid-cols-[0.94fr_1.06fr] xl:items-start">
+          <section className="space-y-5 bg-surface-high p-6 md:p-7">
             <div className="space-y-3">
               <p className="bf-label text-primary">DAILY YIELD EARNED (LAST 14 DAYS)</p>
-              <h2 className="bf-display text-[1.5rem] leading-none tracking-tightHeading">
+              <h2 className="bf-display text-[1.65rem] leading-none tracking-tightHeading">
                 YIELD CHART
               </h2>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-[auto_1fr]">
-              <div className="flex h-56 flex-col justify-between pb-8">
+            <div className="grid gap-4 md:grid-cols-[auto_1fr] md:items-end">
+              <div className="flex h-44 flex-col justify-between pb-6">
                 {yAxisLabels.map((label) => (
                   <span key={label} className="bf-data text-[0.72rem] text-muted">
                     {formatCurrency(label, 0)}
@@ -133,9 +133,9 @@ export function AdminTreasuryView({
                 ))}
               </div>
 
-              <div className="space-y-4">
-                <div className="relative h-56">
-                  <div className="absolute inset-0 grid grid-cols-14 items-end gap-3">
+              <div className="space-y-3">
+                <div className="relative h-44">
+                  <div className="absolute inset-0 grid grid-cols-14 items-end gap-2">
                     {chart.map((point, index) => {
                       const isToday = index === chart.length - 1;
                       const height = `${(point.amount / chartMax) * 100}%`;
@@ -149,7 +149,7 @@ export function AdminTreasuryView({
                           onMouseLeave={() => setHoveredDay(null)}
                         >
                           {isHovered ? (
-                            <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-background px-3 py-2 font-mono text-[0.72rem] uppercase tracking-label text-primary">
+                            <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-background px-2.5 py-1.5 font-mono text-[0.68rem] uppercase tracking-label text-primary">
                               {formatCurrency(point.amount, 2)}
                             </div>
                           ) : null}
@@ -163,9 +163,9 @@ export function AdminTreasuryView({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-14 gap-3">
+                <div className="grid grid-cols-14 gap-2">
                   {chart.map((point) => (
-                    <span key={point.day} className="text-center font-data text-[0.62rem] text-muted">
+                    <span key={point.day} className="text-center font-data text-[0.56rem] text-muted">
                       {point.day}
                     </span>
                   ))}
@@ -174,10 +174,10 @@ export function AdminTreasuryView({
             </div>
           </section>
 
-          <section className="space-y-6 bg-surface-high p-7 md:p-8">
+          <section className="space-y-5 bg-surface-high p-6 md:p-7">
             <div className="space-y-3">
               <p className="bf-label text-primary">FUND ALLOCATION</p>
-              <h2 className="bf-display text-[1.5rem] leading-none tracking-tightHeading">
+              <h2 className="bf-display text-[1.65rem] leading-none tracking-tightHeading">
                 POOL BREAKDOWN
               </h2>
             </div>
@@ -219,16 +219,16 @@ export function AdminTreasuryView({
           </section>
         </div>
 
-        <section className="space-y-6 bg-surface-high p-7 md:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <section className="space-y-6 bg-surface-high p-6 md:p-7">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
             <div className="space-y-3">
               <p className="bf-label text-primary">TRANSACTION HISTORY</p>
-              <h2 className="bf-display text-[1.5rem] leading-none tracking-tightHeading">
+              <h2 className="bf-display text-[1.65rem] leading-none tracking-tightHeading">
                 TREASURY LEDGER
               </h2>
             </div>
 
-            <div className="flex flex-wrap gap-5 border-b border-outline-variant/15 pb-3">
+            <div className="flex flex-wrap gap-4 border-b border-outline-variant/15 pb-3 lg:ml-8">
               {transactionFilters.map((filterValue) => (
                 <button
                   key={filterValue}
@@ -267,12 +267,13 @@ export function AdminTreasuryView({
                       {transaction.date}
                     </td>
                     <td className="border-b border-outline-variant/15 px-5 py-5">
-                      <div className="flex items-center gap-3">
-                        <span className="font-data text-[0.82rem] text-foreground">
-                          {transaction.type}
-                        </span>
-                        {transaction.type === "YIELD" ? <StatusChip status="YIELD" /> : null}
-                      </div>
+                      <span
+                        className={`font-data text-[0.82rem] ${
+                          transaction.type === "YIELD" ? "text-primary" : "text-foreground"
+                        }`}
+                      >
+                        {transaction.type}
+                      </span>
                     </td>
                     <td
                       className={`border-b border-outline-variant/15 px-5 py-5 font-data text-[0.9rem] ${

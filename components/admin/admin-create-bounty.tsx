@@ -99,7 +99,8 @@ export function AdminCreateBounty() {
 
   const slug = useMemo(() => slugify(form.title) || "pending-slug", [form.title]);
   const previewUrl = isPublished ? `bountyflow.xyz/b/${slug}` : "bountyflow.xyz/b/[slug]";
-  const connectedWallet = currentUser?.walletAddress ?? "0x71C0...3901";
+  const connectedWallet =
+    currentUser?.walletLinked && currentUser.walletAddress ? currentUser.walletAddress : null;
   const mockWalletBalance = 186400;
 
   const previewCard = useMemo<BountyCardData>(
@@ -182,7 +183,7 @@ export function AdminCreateBounty() {
       resolvedCount: 0,
       activeCount: 0,
       escrowBalance: totalDeposit,
-      escrowAddress: connectedWallet,
+      escrowAddress: connectedWallet ?? "WALLET-LINK-REQUIRED",
       status: "ACTIVE",
       createdAt: new Date().toISOString(),
       tags: [
@@ -479,7 +480,7 @@ export function AdminCreateBounty() {
                   <div className="space-y-2">
                     <p className="bf-label">CONNECTED WALLET</p>
                     <p className="bf-data text-[0.92rem] text-foreground">
-                      {truncateAddress(connectedWallet)}
+                      {connectedWallet ? truncateAddress(connectedWallet) : "NOT LINKED"}
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -493,8 +494,8 @@ export function AdminCreateBounty() {
 
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <p className="max-w-2xl text-[0.8rem] leading-7 text-muted">
-                  Funding is non-custodial at the protocol layer. For the demo, launch is simulated
-                  locally and updates the live preview state immediately.
+                  Funding arms the escrow pool for this bounty and updates the persisted treasury
+                  flow used by the owner review lifecycle.
                 </p>
                 <button
                   type="button"
