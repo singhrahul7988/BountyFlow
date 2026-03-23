@@ -20,7 +20,7 @@ const supportedChains: Record<number, Chain> = {
 };
 
 export function getConfiguredChainId() {
-  const raw = process.env.NEXT_PUBLIC_CHAIN_ID || process.env.WDK_CHAIN_ID || "";
+  const raw = process.env.NEXT_PUBLIC_CHAIN_ID || "";
   const value = Number(raw);
   return Number.isInteger(value) ? value : polygonAmoy.id;
 }
@@ -30,7 +30,7 @@ export function getConfiguredChain() {
 }
 
 export function getConfiguredRpcUrl() {
-  return process.env.NEXT_PUBLIC_RPC_URL || process.env.WDK_RPC_URL || "";
+  return process.env.NEXT_PUBLIC_RPC_URL || "";
 }
 
 export function getConfiguredTransportUrl() {

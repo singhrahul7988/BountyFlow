@@ -56,6 +56,21 @@ npm run dev
 4. Configure Cloudflare Turnstile and set the Turnstile env vars for login/signup/reset CAPTCHA protection.
 5. Serve the app only over HTTPS in production.
 
+## Secret Hygiene
+
+- Only `.env.example` should ever be tracked in git.
+- Real environment files are ignored by [.gitignore](./.gitignore).
+- Frontend SDKs only receive public `NEXT_PUBLIC_*` configuration; owner allowlists, CAPTCHA secrets, Gemini keys, and WDK secrets stay server-side.
+- Run `npm run scan:secrets` before commits to catch likely leaked credentials in tracked files.
+- A GitHub Actions workflow now runs the same tracked-file secret scan on pushes and pull requests.
+- To enable the local pre-commit hook, run:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+- If a real key was ever committed, shared in screenshots, or pasted into client code, rotate it immediately in the upstream provider.
+
 ## Current Routes
 
 - `/`

@@ -51,10 +51,7 @@ export function getAuthHref(role: UserRole, nextPath?: string) {
 }
 
 export function getAllowedOwnerEmails() {
-  const raw =
-    process.env.OWNER_ALLOWED_EMAILS ||
-    process.env.NEXT_PUBLIC_OWNER_ALLOWED_EMAILS ||
-    "";
+  const raw = process.env.OWNER_ALLOWED_EMAILS || "";
 
   return raw
     .split(",")
