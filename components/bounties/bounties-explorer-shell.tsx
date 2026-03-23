@@ -7,7 +7,13 @@ import { useDemoDataStore } from "@/lib/stores/demo-data-store";
 import { usePublicBountiesSync } from "@/lib/use-demo-sync";
 import { BountiesExplorer } from "./bounties-explorer";
 
-export function BountiesExplorerShell({ items }: { items: BountyDetail[] }) {
+export function BountiesExplorerShell({
+  items,
+  hrefBase
+}: {
+  items: BountyDetail[];
+  hrefBase?: string;
+}) {
   usePublicBountiesSync();
   const createdBounties = useDemoDataStore((state) => state.createdBounties);
 
@@ -25,5 +31,5 @@ export function BountiesExplorerShell({ items }: { items: BountyDetail[] }) {
     return next;
   }, [createdBounties, items]);
 
-  return <BountiesExplorer items={mergedItems} />;
+  return <BountiesExplorer items={mergedItems} hrefBase={hrefBase} />;
 }

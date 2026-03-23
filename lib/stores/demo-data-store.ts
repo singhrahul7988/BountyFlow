@@ -22,6 +22,7 @@ type DemoDataState = {
   notifications: AdminNotification[];
   submissionDecisions: Record<string, SubmissionDecision>;
   ownerSettings: {
+    ownerDisplayName: string;
     programStatus: "ACTIVE" | "PAUSED";
     notifyThreshold: number;
     autoRejectBelow: number;
@@ -143,6 +144,7 @@ export const useDemoDataStore = create<DemoDataState>()(
       notifications: adminNotifications,
       submissionDecisions: defaultSubmissionDecisions,
       ownerSettings: {
+        ownerDisplayName: "",
         programStatus: "ACTIVE",
         notifyThreshold: 5,
         autoRejectBelow: 3,

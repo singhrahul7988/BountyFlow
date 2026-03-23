@@ -249,12 +249,19 @@ export function ResearcherDashboard({
   submissions,
   summary,
   payoutHistory,
-  utilityPage = null
+  utilityPage = null,
+  externalPage = null
 }: {
   submissions: ResearcherSubmission[];
   summary: DashboardSummary;
   payoutHistory: PayoutHistoryEntry[];
   utilityPage?: UtilityPage | null;
+  externalPage?: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    content: React.ReactNode;
+  } | null;
 }) {
   const [activeView, setActiveView] = useState<DashboardView>("OVERVIEW");
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>("ALL");
@@ -485,7 +492,7 @@ export function ResearcherDashboard({
           <DashboardPanel title="CONTROL PANEL" className="min-h-[18rem]">
             <div className="space-y-2.5">
               <Link
-                href="/bounties"
+                href="/dashboard/bounties"
                 className="flex items-center justify-between gap-3 bg-background px-2.5 py-2 transition-colors duration-150 hover:bg-surface-low"
               >
                 <span className="bf-data text-[0.66rem] text-foreground">BROWSE PROGRAMS</span>
@@ -524,7 +531,7 @@ export function ResearcherDashboard({
           <DashboardPanel
             title="ACTIVE PROGRAMS SNAPSHOT"
             action={
-              <Link href="/bounties" className="font-mono text-[0.52rem] uppercase tracking-label text-primary underline-offset-4 hover:underline">
+              <Link href="/dashboard/bounties" className="font-mono text-[0.52rem] uppercase tracking-label text-primary underline-offset-4 hover:underline">
                 VIEW ALL BOUNTIES
               </Link>
             }
@@ -581,7 +588,7 @@ export function ResearcherDashboard({
     return (
       <div className="space-y-4">
         <section className="grid gap-3 xl:grid-cols-[1.3fr_0.7fr]">
-          <div className="space-y-2 border border-outline/12 bg-surface-high/75 p-3 backdrop-blur-sm md:p-3.5">
+          <div className="relative space-y-2 border border-outline/12 bg-surface-high/75 p-3 pb-12 backdrop-blur-sm md:p-3.5 md:pb-12">
             <h1 className="bf-display text-[1.4rem] leading-[0.92] tracking-tightHeading sm:text-[1.66rem]">
               MY SUBMISSIONS
             </h1>
@@ -589,6 +596,12 @@ export function ResearcherDashboard({
               Immutable ledger of cryptographic audits, AI triage, dispute windows, and verifiable
               payout outcomes.
             </p>
+            <Link
+              href="/dashboard/bounties"
+              className="bf-button-primary absolute bottom-3 right-3 justify-center whitespace-nowrap px-3 py-1.5 text-[0.48rem]"
+            >
+              SUBMIT BUG
+            </Link>
           </div>
 
           <div className="border border-outline/12 bg-surface-high/75 p-3 backdrop-blur-sm">
@@ -725,7 +738,7 @@ export function ResearcherDashboard({
 
             <div className="flex justify-end">
               <Link
-                href="/bounties"
+                href="/dashboard/bounties"
                 className="bf-button-primary justify-center whitespace-nowrap px-3 py-1.5 text-[0.48rem]"
               >
                 SUBMIT BUG
@@ -796,13 +809,12 @@ export function ResearcherDashboard({
           </p>
         </section>
 
-        <div className="relative space-y-2.5 pl-3.5 before:absolute before:bottom-2 before:left-1 before:top-2 before:w-[2px] before:bg-primary/25">
+        <div className="space-y-2.5">
           {payoutHistory.map((entry) => (
             <article
               key={entry.id}
-              className="relative grid gap-2.5 border border-outline/12 bg-surface-high/75 px-3 py-3 backdrop-blur-sm lg:grid-cols-[1fr_auto]"
+              className="grid gap-2.5 border border-outline/12 bg-surface-high/75 px-3 py-3 backdrop-blur-sm lg:grid-cols-[1fr_auto] lg:items-start"
             >
-              <span className="absolute -left-[0.82rem] top-5 h-2 w-2 bg-primary" />
               <div className="space-y-1.5">
                 <p className="bf-data text-[0.58rem] text-muted">{entry.occurredAt}</p>
                 <h2 className="bf-display text-[0.76rem] leading-none tracking-tightHeading text-foreground">
@@ -816,7 +828,7 @@ export function ResearcherDashboard({
                 </div>
               </div>
 
-              <div className="space-y-1.5 text-right">
+              <div className="space-y-1.5 text-left lg:text-right">
                 <p className="bf-data text-[0.98rem] text-primary">
                   +{formatCurrency(entry.amount, 0)} USDT
                 </p>
@@ -1010,8 +1022,26 @@ export function ResearcherDashboard({
     );
   }
 
+  function renderExternalPage(page: NonNullable<typeof externalPage>) {
+    return (
+      <div className="space-y-4">
+        <section className="space-y-2 border border-outline/12 bg-surface-high/75 p-3 backdrop-blur-sm md:p-3.5">
+          <p className="bf-label text-primary">{page.eyebrow}</p>
+          <h1 className="bf-display text-[1.4rem] leading-[0.92] tracking-tightHeading sm:text-[1.66rem]">
+            {page.title}
+          </h1>
+          <p className="max-w-3xl text-[0.68rem] leading-5 text-muted">{page.description}</p>
+        </section>
+
+        {page.content}
+      </div>
+    );
+  }
+
   const content = utilityPage
     ? renderUtilityPlaceholder(utilityPage)
+    : externalPage
+      ? renderExternalPage(externalPage)
     : activeView === "OVERVIEW"
       ? renderOverview()
       : activeView === "MY SUBMISSIONS"
@@ -1060,7 +1090,7 @@ export function ResearcherDashboard({
               </div>
             </div>
 
-            <nav className="grid gap-0.5">
+            <nav className="mt-2.5 grid gap-0.5">
               {dashboardNav.map((item) => (
                 <ViewNavButton
                   key={item.view}
@@ -1074,10 +1104,6 @@ export function ResearcherDashboard({
             </nav>
 
             <div className="mt-auto space-y-2">
-              <Link href="/bounties" className="bf-button-primary w-full justify-center px-1.5 py-1.5 text-[0.34rem]">
-                SUBMIT BUG
-              </Link>
-
               <WalletLinkButton
                 className="w-full justify-center px-1.5 py-1.5 text-[0.34rem]"
                 showHelperText={false}

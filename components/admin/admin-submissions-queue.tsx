@@ -106,7 +106,9 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
 
       const haystack = [
         submission.id,
+        submission.bountyName,
         submission.title,
+        submission.reporterName,
         submission.reporterAddress,
         submission.summaryRisk
       ]
@@ -229,31 +231,31 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
   }
 
   return (
-    <section className="p-5 md:p-6 xl:p-7">
-      <div className="space-y-8">
-        <div className="space-y-3">
+    <section className="p-4 md:p-5 xl:p-6">
+      <div className="space-y-5">
+        <div className="space-y-2.5">
           <p className="bf-label text-primary">ADMIN QUEUE</p>
-          <h1 className="bf-display text-[2.3rem] leading-none tracking-tightHeading sm:text-[3.3rem]">
+          <h1 className="bf-display text-[1.7rem] leading-none tracking-tightHeading sm:text-[2.3rem]">
             SUBMISSIONS
           </h1>
         </div>
 
         {criticalSubmission && !dismissedCriticalBanner ? (
-          <div className="flex flex-col gap-4 border-l-[4px] border-danger bg-danger/5 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 border-l-[4px] border-danger bg-danger/5 p-3.5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">
               <span className="h-2.5 w-2.5 animate-pulse-dot bg-danger" />
-              <p className="font-mono text-[0.78rem] uppercase tracking-label text-danger">
+              <p className="font-mono text-[0.68rem] uppercase tracking-label text-danger">
                 CRITICAL FINDING | SCORE {criticalSubmission.aiScore.toFixed(1)}
               </p>
             </div>
-              <p className="max-w-3xl text-[0.82rem] leading-6 text-foreground">
+              <p className="max-w-3xl text-[0.74rem] leading-5 text-foreground">
                 {criticalSubmission.title} | {criticalSubmission.summaryRisk}
               </p>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setExpandedId(criticalSubmission.id)}
-                className="inline-flex items-center justify-center border border-danger/35 px-4 py-3 font-mono text-[0.75rem] uppercase tracking-label text-danger transition-colors duration-100 ease-linear hover:border-danger hover:bg-danger/10"
+                className="inline-flex items-center justify-center border border-danger/35 px-3 py-2 font-mono text-[0.66rem] uppercase tracking-label text-danger transition-colors duration-100 ease-linear hover:border-danger hover:bg-danger/10"
               >
                 REVIEW NOW -&gt;
               </button>
@@ -261,7 +263,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                 type="button"
                 aria-label="Dismiss critical alert"
                 onClick={() => setDismissedCriticalBanner(true)}
-                className="font-mono text-sm text-muted transition-colors duration-100 ease-linear hover:text-foreground"
+                className="font-mono text-[0.78rem] text-muted transition-colors duration-100 ease-linear hover:text-foreground"
               >
                 X
               </button>
@@ -269,14 +271,14 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
           </div>
         ) : null}
 
-        <div className="grid gap-5 bg-surface-high p-5 xl:grid-cols-[1.35fr_0.55fr_0.7fr]">
-          <div className="flex flex-wrap gap-6 border-b border-outline-variant/15 pb-3 xl:border-0 xl:pb-0">
+        <div className="grid gap-2.5 bg-surface-high p-3 xl:grid-cols-[1.45fr_0.42fr_0.58fr] xl:items-end">
+          <div className="flex flex-wrap gap-3 border-b border-outline-variant/15 pb-2 xl:border-0 xl:pb-0">
             {filterTabs.map((filterValue) => (
               <button
                 key={filterValue}
                 type="button"
                 onClick={() => setActiveFilter(filterValue)}
-                className={`border-b-2 pb-3 font-mono text-[0.72rem] uppercase tracking-label transition-colors duration-100 ease-linear ${
+                className={`border-b-2 pb-1.5 font-mono text-[0.5rem] uppercase tracking-label transition-colors duration-100 ease-linear ${
                   activeFilter === filterValue
                     ? "border-primary text-primary"
                     : "border-transparent text-muted hover:text-foreground"
@@ -287,7 +289,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
             ))}
           </div>
 
-          <label className="space-y-3">
+          <label className="space-y-1.5">
             <span className="bf-label">SORT</span>
             <TerminalSelect
               value={sortBy}
@@ -297,21 +299,22 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                 value: option
               }))}
               ariaLabel="Sort submissions"
+              buttonClassName="px-3 py-2 text-[0.62rem]"
             />
           </label>
 
-          <label className="space-y-3">
+          <label className="space-y-1.5">
             <span className="bf-label">SEARCH</span>
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              className="bf-terminal-input"
+              className="bf-terminal-input px-3 py-2 text-[0.68rem]"
               placeholder="Search title, ID, or wallet"
             />
           </label>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           {visibleSubmissions.map((submission) => {
             const currentStatus = submissionDecisions[submission.id]?.status ?? submission.status;
             const isExpanded = expandedId === submission.id;
@@ -325,7 +328,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
             return (
               <article
                 key={submission.id}
-                  className={`space-y-5 bg-surface-high p-5 md:p-6 ${
+                  className={`space-y-3 bg-surface-high p-3.5 md:p-4 ${
                   submission.aiScore >= 9
                     ? "border border-danger/30 shadow-[0_0_12px_rgba(110,255,192,0.1)]"
                     : currentStatus === "DISPUTE OPEN"
@@ -333,8 +336,8 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                       : ""
                 }`}
               >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-4">
+                <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-3">
                       <StatusChip status={submission.severity} />
                       <span className="bf-label text-muted">#{submission.id}</span>
@@ -343,20 +346,20 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                       href={`/admin/submissions/${submission.id}`}
                       className="inline-block transition-colors duration-100 ease-linear hover:text-primary"
                     >
-                      <h2 className="bf-display text-[1.32rem] leading-none tracking-tightHeading">
+                      <h2 className="bf-display text-[0.92rem] leading-none tracking-tightHeading">
                         {submission.title}
                       </h2>
                     </Link>
-                    <p className="bf-data text-[0.82rem] text-muted">
-                      {truncateAddress(submission.reporterAddress)} | Rep:{" "}
+                    <p className="bf-data text-[0.68rem] text-muted">
+                      {(submission.reporterName || "Researcher").toUpperCase()} | {truncateAddress(submission.reporterAddress)} | REP{" "}
                       {submission.reporterReputation.toFixed(1)} | {submission.submittedAt}
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <Link
                       href={`/admin/submissions/${submission.id}`}
-                      className="bf-button-tertiary px-4 py-3 text-primary"
+                      className="bf-button-tertiary px-3 py-2 text-primary"
                     >
                       FULL PAGE
                     </Link>
@@ -365,9 +368,9 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                       onClick={() =>
                         setExpandedId((current) => (current === submission.id ? null : submission.id))
                       }
-                      className="bf-button-secondary px-4 py-3"
+                      className="bf-button-secondary px-3 py-2"
                     >
-                      {isExpanded ? "HIDE REPORT" : "VIEW REPORT"}
+                      {isExpanded ? "LESS INFO" : "MORE INFO"}
                     </button>
                     <button
                       type="button"
@@ -375,7 +378,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                         setExpandedId(submission.id);
                         handleApprove(submission.id);
                       }}
-                      className="bf-button-primary px-4 py-3"
+                      className="bf-button-primary px-3 py-2"
                       disabled={isSavingDecision}
                     >
                       {isSavingDecision ? "SAVING..." : "APPROVE"}
@@ -383,67 +386,40 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                   </div>
                 </div>
 
-                <div className="grid gap-6 xl:grid-cols-[0.78fr_0.22fr]">
-                  <div className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-[auto_1fr_auto] md:items-start">
-                      <div className="space-y-2">
+                <div className="grid gap-3 xl:grid-cols-[1fr_auto_auto_auto] xl:items-start">
+                  <div className="space-y-1.5">
                         <p className="bf-label">AI SCORE</p>
-                      <p className={`bf-data text-[1.65rem] ${scoreTone(submission.aiScore)}`}>
+                      <p className={`bf-data text-[1.05rem] ${scoreTone(submission.aiScore)}`}>
                           {submission.aiScore.toFixed(1)}
                         </p>
-                      </div>
+                  </div>
 
-                      <div className="grid gap-3 sm:grid-cols-5">
-                        {submission.subScores.map((item) => (
-                          <div key={item.label} className="space-y-2">
-                            <p className="bf-label">{item.label}</p>
-                            <div className="h-[4px] bg-background">
-                              <div
-                                className="h-full bg-primary-gradient"
-                                style={{ width: `${item.value * 100}%` }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="space-y-2 justify-self-start md:justify-self-end">
+                      <div className="space-y-1.5">
                         <p className="bf-label">RECOMMENDED</p>
-                        <p className="bf-data text-[0.9rem] text-primary">
+                        <p className="bf-data text-[0.78rem] text-primary">
                           {formatCurrency(recommendedAmount(submission, submission.recommendedPct), 0)}{" "}
                           USDT ({submission.recommendedPct}%)
                         </p>
                       </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {submission.evidencePills.map((pill) => (
-                        <span
-                          key={pill}
-                              className="bg-background px-2.5 py-1.5 font-mono text-[0.66rem] uppercase tracking-label text-muted"
-                        >
-                          {pill}
-                        </span>
-                      ))}
-                    </div>
+                  <div className="space-y-1.5">
+                    <p className="bf-label">RISK</p>
+                    <p className="text-[0.68rem] leading-5 text-muted">{submission.summaryRisk}</p>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <StatusChip status={currentStatus} />
-                      <p className="bf-label text-foreground">NEEDS OWNER ACTION</p>
-                    </div>
+                  <div className="space-y-1.5">
+                    <p className="bf-label">STATUS</p>
+                    <StatusChip status={currentStatus} />
                   </div>
                 </div>
 
                 {currentStatus === "DISPUTE OPEN" && submission.disputeNote ? (
-                  <div className="border-l-[3px] border-amber bg-amber/10 p-4">
+                  <div className="border-l-[3px] border-amber bg-amber/10 p-3.5">
                     <p className="bf-label text-amber">DISPUTE NOTE</p>
-                    <p className="mt-2 text-sm leading-7 text-muted">
+                    <p className="mt-2 text-[0.76rem] leading-6 text-muted">
                       {submission.disputeNote.reason}
                     </p>
                     {submission.disputeNote.justification ? (
-                      <p className="mt-2 text-sm leading-7 text-muted">
+                      <p className="mt-2 text-[0.76rem] leading-6 text-muted">
                         {submission.disputeNote.justification}
                       </p>
                     ) : null}
@@ -455,16 +431,46 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                 ) : null}
 
                 {isExpanded ? (
-                  <div className="space-y-6">
-                    <div className="space-y-4 bg-background p-5">
+                  <div className="space-y-5">
+                    <div className="space-y-3 bg-background p-4">
                       <p className="bf-label">FULL DESCRIPTION</p>
-                      <p className="text-[0.82rem] leading-7 text-muted">{submission.description}</p>
+                      <p className="text-[0.76rem] leading-6 text-muted">{submission.description}</p>
                     </div>
 
-                    <div className="grid gap-6 xl:grid-cols-2">
-                      <div className="space-y-4 bg-background p-5">
+                    <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
+                      <div className="space-y-2">
+                        <p className="bf-label">SUB-SCORES</p>
+                        <div className="grid gap-2.5 sm:grid-cols-5">
+                          {submission.subScores.map((item) => (
+                            <div key={item.label} className="space-y-1.5">
+                              <p className="bf-label">{item.label}</p>
+                              <div className="h-[4px] bg-surface-high">
+                                <div
+                                  className="h-full bg-primary-gradient"
+                                  style={{ width: `${item.value * 100}%` }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 sm:max-w-[15rem] sm:justify-end">
+                        {submission.evidencePills.map((pill) => (
+                          <span
+                            key={pill}
+                            className="bg-surface-high px-2 py-1.5 font-mono text-[0.58rem] uppercase tracking-label text-muted"
+                          >
+                            {pill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 xl:grid-cols-2">
+                      <div className="space-y-3 bg-background p-4">
                         <p className="bf-label">REPRODUCTION STEPS</p>
-                          <ol className="space-y-2 font-mono text-[0.82rem] leading-7 text-muted">
+                          <ol className="space-y-2 font-mono text-[0.76rem] leading-6 text-muted">
                           {submission.stepsToReproduce.map((step, index) => (
                             <li key={step}>
                               {index + 1}. {step}
@@ -473,15 +479,15 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                         </ol>
                       </div>
 
-                      <div className="space-y-4 bg-background p-5">
+                      <div className="space-y-3 bg-background p-4">
                         <p className="bf-label">IMPACT ASSESSMENT</p>
-                          <p className="text-[0.82rem] leading-7 text-muted">
+                          <p className="text-[0.76rem] leading-6 text-muted">
                           {submission.impactAssessment}
                         </p>
                         {submission.internalNote ? (
-                          <div className="bg-surface-high p-4">
+                          <div className="bg-surface-high p-3.5">
                             <p className="bf-label text-primary">INTERNAL NOTE</p>
-                            <p className="mt-2 text-[0.8rem] leading-6 text-muted">
+                            <p className="mt-2 text-[0.74rem] leading-6 text-muted">
                               {submission.internalNote}
                             </p>
                           </div>
@@ -490,7 +496,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                     </div>
 
                     <div className="space-y-4">
-                      <div className="flex flex-wrap gap-4 border-b border-outline-variant/15 pb-3">
+                      <div className="flex flex-wrap gap-3 border-b border-outline-variant/15 pb-2.5">
                         {evidenceTabs.map((tab) => (
                           <button
                             key={tab}
@@ -498,7 +504,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                             onClick={() =>
                               setEvidenceTabById((current) => ({ ...current, [submission.id]: tab }))
                             }
-                            className={`border-b-2 pb-3 font-mono text-[0.72rem] uppercase tracking-label transition-colors duration-100 ease-linear ${
+                            className={`border-b-2 pb-2.5 font-mono text-[0.68rem] uppercase tracking-label transition-colors duration-100 ease-linear ${
                               activeEvidenceTab === tab
                                 ? "border-primary text-primary"
                                 : "border-transparent text-muted hover:text-foreground"
@@ -512,7 +518,7 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                       </div>
 
                       {activeEvidenceTab === "POC CODE" ? (
-                        <pre className="overflow-x-auto bg-surface-container-highest p-4 font-mono text-[0.72rem] leading-6 text-muted">
+                        <pre className="overflow-x-auto bg-surface-container-highest p-3.5 font-mono text-[0.68rem] leading-6 text-muted">
                           <code>{submission.codeSnippet}</code>
                         </pre>
                       ) : null}
@@ -522,20 +528,20 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                       ) : null}
 
                       {activeEvidenceTab === "SCREENSHOTS" ? (
-                        <div className="grid gap-4 sm:grid-cols-3">
+                        <div className="grid gap-3 sm:grid-cols-3">
                           {submission.screenshots.map((shot) => (
-                            <div key={shot} className="bg-background p-5">
+                            <div key={shot} className="bg-background p-4">
                               <p className="bf-label text-primary">SCREENSHOT</p>
-                              <p className="mt-3 text-[0.8rem] leading-6 text-muted">{shot}</p>
+                              <p className="mt-2.5 text-[0.74rem] leading-6 text-muted">{shot}</p>
                             </div>
                           ))}
                         </div>
                       ) : null}
 
                       {activeEvidenceTab === "GITHUB" ? (
-                        <div className="bg-background p-5">
+                        <div className="bg-background p-4">
                           <p className="bf-label text-primary">GITHUB METADATA</p>
-                          <div className="mt-4 space-y-2 text-[0.8rem] leading-6 text-muted">
+                          <div className="mt-3 space-y-2 text-[0.74rem] leading-6 text-muted">
                             <p>REPO: {submission.github.repo}</p>
                             <p>BRANCH: {submission.github.branch}</p>
                             <p>UPDATED: {submission.github.updatedAt}</p>
@@ -545,10 +551,10 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                       ) : null}
                     </div>
 
-                    <div className="space-y-5 bg-background p-4 md:p-5">
+                    <div className="space-y-4 bg-background p-4">
                       <p className="bf-label text-primary">PAYOUT DECISION</p>
-                      <div className="grid gap-6 xl:grid-cols-[0.72fr_0.28fr] xl:items-end">
-                        <div className="space-y-4">
+                      <div className="grid gap-4 xl:grid-cols-[0.72fr_0.28fr] xl:items-end">
+                        <div className="space-y-3">
                           <input
                             type="range"
                             min={0}
@@ -575,8 +581,8 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                         </div>
 
                         <div className="space-y-2">
-                          <p className="bf-data text-[1.7rem] text-primary">{payoutPct}%</p>
-                          <p className="bf-data text-[0.9rem] text-primary">
+                          <p className="bf-data text-[1.4rem] text-primary">{payoutPct}%</p>
+                          <p className="bf-data text-[0.8rem] text-primary">
                             {formatCurrency(payoutAmount, 0)} USDT
                           </p>
                         </div>
@@ -663,10 +669,10 @@ export function AdminSubmissionsQueue({ items }: { items: AdminSubmission[] }) {
                       ) : null}
 
                       {decisionError ? (
-                        <p className="text-sm leading-7 text-amber">{decisionError}</p>
+                        <p className="text-[0.76rem] leading-6 text-amber">{decisionError}</p>
                       ) : null}
 
-                      <p className="text-sm leading-7 text-muted">
+                      <p className="text-[0.76rem] leading-6 text-muted">
                         Approved payouts enter a 48-hour dispute window before autonomous USDT
                         release from escrow.
                       </p>

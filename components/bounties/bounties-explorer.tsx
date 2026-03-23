@@ -11,7 +11,13 @@ const rewardFilters = ["ANY", "UNDER_50K", "BETWEEN_50K_75K", "ABOVE_75K"] as co
 const platformFilters = ["ALL", "DEFI", "INFRA", "L2", "WALLET", "ORACLE"] as const;
 const sortOptions = ["NEWEST", "HIGHEST_REWARD", "MOST_ACTIVE"] as const;
 
-export function BountiesExplorer({ items }: { items: BountyDetail[] }) {
+export function BountiesExplorer({
+  items,
+  hrefBase = "/bounty"
+}: {
+  items: BountyDetail[];
+  hrefBase?: string;
+}) {
   const [severity, setSeverity] = useState<(typeof severityFilters)[number]>("ALL");
   const [rewardRange, setRewardRange] = useState<(typeof rewardFilters)[number]>("ANY");
   const [platform, setPlatform] = useState<(typeof platformFilters)[number]>("ALL");
@@ -121,7 +127,7 @@ export function BountiesExplorer({ items }: { items: BountyDetail[] }) {
           <BountyCard
             key={item.id}
             slug={item.slug}
-            href={`/bounty/${item.slug}`}
+            href={`${hrefBase}/${item.slug}`}
             title={item.title}
             platform={item.platform}
             rewardPool={item.rewardPool}

@@ -14,8 +14,11 @@ export type AdminSubmissionStatus =
 
 export type AdminSubmission = {
   id: string;
+  bountySlug: string;
+  bountyName: string;
   severity: AdminSubmissionSeverity;
   title: string;
+  reporterName?: string;
   reporterAddress: string;
   reporterReputation: number;
   submittedAt: string;
@@ -45,8 +48,11 @@ export type AdminSubmission = {
 export const adminSubmissions: AdminSubmission[] = [
   {
     id: "BF-9920",
+    bountySlug: "ethereum-l2-bridge-audit",
+    bountyName: "ETHEREUM L2 BRIDGE AUDIT",
     severity: "CRITICAL",
     title: "Bridge proof replay accepted after stale root invalidation delay",
+    reporterName: "Arjun Rao",
     reporterAddress: "0x7f3a4f9bc9d2",
     reporterReputation: 8.6,
     submittedAt: "Mar 22, 2026 | 09:14 UTC",
@@ -85,8 +91,11 @@ export const adminSubmissions: AdminSubmission[] = [
   },
   {
     id: "BF-9881",
+    bountySlug: "ethereum-l2-bridge-audit",
+    bountyName: "ETHEREUM L2 BRIDGE AUDIT",
     severity: "HIGH",
     title: "Fallback oracle feed accepted after stale threshold breach",
+    reporterName: "Maya Chen",
     reporterAddress: "0x8be19aa41230",
     reporterReputation: 7.9,
     submittedAt: "Mar 21, 2026 | 18:42 UTC",
@@ -123,8 +132,11 @@ export const adminSubmissions: AdminSubmission[] = [
   },
   {
     id: "BF-9802",
+    bountySlug: "ethereum-l2-bridge-audit",
+    bountyName: "ETHEREUM L2 BRIDGE AUDIT",
     severity: "HIGH",
     title: "Stale signer cache bypasses escrow policy rotation",
+    reporterName: "Ibrahim Khan",
     reporterAddress: "0x19d0ff88aa90",
     reporterReputation: 8.1,
     submittedAt: "Mar 20, 2026 | 13:05 UTC",
@@ -162,8 +174,11 @@ export const adminSubmissions: AdminSubmission[] = [
   },
   {
     id: "BF-9755",
+    bountySlug: "ethereum-l2-bridge-audit",
+    bountyName: "ETHEREUM L2 BRIDGE AUDIT",
     severity: "HIGH",
     title: "Approved payout disputed for higher completeness weighting",
+    reporterName: "Nadia Lopez",
     reporterAddress: "0x55af90c8137e",
     reporterReputation: 8.8,
     submittedAt: "Mar 19, 2026 | 16:30 UTC",
@@ -206,8 +221,11 @@ export const adminSubmissions: AdminSubmission[] = [
   },
   {
     id: "BF-9735",
+    bountySlug: "ethereum-l2-bridge-audit",
+    bountyName: "ETHEREUM L2 BRIDGE AUDIT",
     severity: "MEDIUM",
     title: "Reserve accounting drift during Solana authority handoff",
+    reporterName: "Dev Patel",
     reporterAddress: "0x2ac9b18344d1",
     reporterReputation: 7.1,
     submittedAt: "Mar 19, 2026 | 07:48 UTC",
@@ -244,8 +262,11 @@ export const adminSubmissions: AdminSubmission[] = [
   },
   {
     id: "BF-9604",
+    bountySlug: "ethereum-l2-bridge-audit",
+    bountyName: "ETHEREUM L2 BRIDGE AUDIT",
     severity: "MEDIUM",
     title: "Forced withdrawal griefing path awaiting mitigation validation",
+    reporterName: "Sara Kim",
     reporterAddress: "0x91c7aa901af4",
     reporterReputation: 8.0,
     submittedAt: "Mar 17, 2026 | 16:20 UTC",

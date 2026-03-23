@@ -343,9 +343,12 @@ export function SubmissionExperience({ bounty }: { bounty: BountyDetail }) {
 
     const adminSubmission: AdminSubmission = {
       id: adminId,
+      bountySlug: bounty.slug,
+      bountyName: bounty.title,
       severity: (state.severity || "MEDIUM") as AdminSubmission["severity"],
       title: state.title,
-      reporterAddress: "0x71C03901BF0001",
+      reporterName: currentUser?.name || "Researcher",
+      reporterAddress: currentUser?.walletAddress || "0x71C03901BF0001",
       reporterReputation: 7.8,
       submittedAt: researcherSubmission.submittedAt,
       aiScore: preview.score,

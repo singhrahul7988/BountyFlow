@@ -1,8 +1,25 @@
+import type { BountyDetail } from "@/lib/bounty-data";
+
 export const adminBountyContext = {
+  slug: "ethereum-l2-bridge-audit",
   name: "ETHEREUM L2 BRIDGE AUDIT",
   status: "ACTIVE" as const,
   walletAddress: "0x71C8D4eA178F3901"
 };
+
+export function resolveOwnerProgram(createdBounties: BountyDetail[]) {
+  const liveCreatedBounty = createdBounties[0];
+
+  if (liveCreatedBounty) {
+    return {
+      slug: liveCreatedBounty.slug,
+      name: liveCreatedBounty.title,
+      status: liveCreatedBounty.status
+    };
+  }
+
+  return adminBountyContext;
+}
 
 export const adminOverviewStats = [
   {

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useMemo } from "react";
 
 import { researcherSubmissions } from "@/lib/dashboard-data";
@@ -14,9 +15,16 @@ import { useAuthenticatedDemoStateSync } from "@/lib/use-demo-sync";
 import { ResearcherDashboard } from "./researcher-dashboard";
 
 export function ResearcherDashboardShell({
-  utilityPage = null
+  utilityPage = null,
+  externalPage = null
 }: {
   utilityPage?: "Terminal" | "Nodes" | "Security" | null;
+  externalPage?: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    content: ReactNode;
+  } | null;
 }) {
   const currentUser = useAppStore((state) => state.currentUser);
   useAuthenticatedDemoStateSync(currentUser?.role === "researcher");
@@ -43,6 +51,7 @@ export function ResearcherDashboardShell({
       summary={summary}
       payoutHistory={payoutHistory}
       utilityPage={utilityPage}
+      externalPage={externalPage}
     />
   );
 }

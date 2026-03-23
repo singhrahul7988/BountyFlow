@@ -66,15 +66,15 @@ export function AdminNotificationsView() {
   }
 
   return (
-    <section className="p-5 md:p-6 xl:p-7">
-      <div className="space-y-8">
+    <section className="p-4 md:p-5 xl:p-6">
+      <div className="space-y-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <p className="bf-label text-primary">OWNER INBOX</p>
-            <h1 className="bf-display text-[2.3rem] leading-none tracking-tightHeading sm:text-[3.3rem]">
+            <h1 className="bf-display text-[1.65rem] leading-none tracking-tightHeading sm:text-[2.2rem]">
               NOTIFICATIONS
             </h1>
-            <p className="max-w-3xl text-[0.84rem] leading-7 text-muted">
+            <p className="max-w-3xl text-[0.76rem] leading-6 text-muted">
               Critical scoring alerts, dispute escalations, and treasury events are grouped here
               for fast owner action.
             </p>
@@ -89,36 +89,36 @@ export function AdminNotificationsView() {
           </button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <article className="bg-surface-high p-4">
+        <div className="grid gap-3 md:grid-cols-3">
+          <article className="bg-surface-high p-3">
             <p className="bf-label">UNREAD</p>
-            <p className="bf-data mt-3 text-[1.5rem] text-primary">{unreadCount}</p>
+            <p className="bf-data mt-2 text-[1.12rem] text-primary">{unreadCount}</p>
           </article>
-          <article className="bg-surface-high p-4">
+          <article className="bg-surface-high p-3">
             <p className="bf-label">TODAY</p>
-            <p className="bf-data mt-3 text-[1.5rem] text-foreground">
+            <p className="bf-data mt-2 text-[1.12rem] text-foreground">
               {grouped.find((entry) => entry.group === "TODAY")?.items.length ?? 0}
             </p>
           </article>
-          <article className="bg-surface-high p-4">
+          <article className="bg-surface-high p-3">
             <p className="bf-label">OPEN ACTIONS</p>
-            <p className="bf-data mt-3 text-[1.5rem] text-amber">
+            <p className="bf-data mt-2 text-[1.12rem] text-amber">
               {items.filter((item) => item.actionHref).length}
             </p>
           </article>
         </div>
 
-        <div className="space-y-10">
+        <div className="space-y-6">
           {grouped.map(({ group, items: groupItems }) =>
             groupItems.length ? (
-              <section key={group} className="space-y-4">
+              <section key={group} className="space-y-3">
                 <p className="bf-label text-muted">{group}</p>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {groupItems.map((item) => (
                     <article
                       key={item.id}
-                      className={`relative border-l-[3px] p-4 md:p-5 ${
+                      className={`relative border-l-[3px] p-3.5 md:p-4 ${
                         item.unread
                           ? toneStyles[item.type]
                           : "border-transparent bg-surface-low"
@@ -128,7 +128,7 @@ export function AdminNotificationsView() {
                           type="button"
                           aria-label={`Dismiss ${item.title}`}
                           onClick={() => void handleDismiss(item.id)}
-                          className="absolute right-5 top-5 font-mono text-sm text-muted transition-colors duration-100 ease-linear hover:text-foreground"
+                          className="absolute right-4 top-4 font-mono text-[0.8rem] text-muted transition-colors duration-100 ease-linear hover:text-foreground"
                         >
                         X
                       </button>
@@ -136,16 +136,16 @@ export function AdminNotificationsView() {
                       <div className="flex flex-col gap-4 pr-10 lg:flex-row lg:items-start lg:justify-between">
                         <div className="space-y-3">
                           <p
-                            className={`font-mono text-[0.86rem] uppercase tracking-label ${
+                            className={`font-mono text-[0.74rem] uppercase tracking-label ${
                               item.unread ? "text-foreground" : "text-muted"
                             }`}
                           >
                             {item.title}
                           </p>
-                          <p className="max-w-3xl text-[0.8rem] leading-6 text-muted">
+                          <p className="max-w-3xl text-[0.72rem] leading-5 text-muted">
                             {item.description}
                           </p>
-                          <p className="bf-data text-[0.72rem] text-muted">{item.timestamp}</p>
+                          <p className="bf-data text-[0.66rem] text-muted">{item.timestamp}</p>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3 lg:justify-end">

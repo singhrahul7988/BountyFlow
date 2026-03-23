@@ -105,10 +105,10 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
   }
 
   return (
-    <section className="p-5 md:p-6 xl:p-7">
-      <div className="space-y-8">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="space-y-3">
+    <section className="p-4 md:p-5 xl:p-6">
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div className="space-y-2.5">
             <Link href="/admin/submissions" className="bf-button-tertiary">
               BACK TO QUEUE
             </Link>
@@ -116,63 +116,63 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
               <StatusChip status={submission.severity} />
               <span className="bf-label text-muted">#{submission.id}</span>
             </div>
-            <h1 className="bf-display max-w-5xl text-[2rem] leading-none tracking-tightHeading sm:text-[3rem]">
+            <h1 className="bf-display max-w-4xl text-[1.7rem] leading-none tracking-tightHeading sm:text-[2.35rem]">
               {submission.title}
             </h1>
-            <p className="bf-data text-[0.8rem] text-muted">
-              {truncateAddress(submission.reporterAddress)} | REP {submission.reporterReputation.toFixed(1)} |{" "}
-              {submission.submittedAt}
+            <p className="bf-data text-[0.74rem] text-muted">
+              {(submission.reporterName || "Researcher").toUpperCase()} | {truncateAddress(submission.reporterAddress)} | REP{" "}
+              {submission.reporterReputation.toFixed(1)} | {submission.submittedAt}
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="bg-surface-high p-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="bg-surface-high p-3.5">
               <p className="bf-label">AI SCORE</p>
-              <p className={`bf-data mt-3 text-[1.7rem] ${scoreTone(submission.aiScore)}`}>
+              <p className={`bf-data mt-2.5 text-[1.45rem] ${scoreTone(submission.aiScore)}`}>
                 {submission.aiScore.toFixed(1)}
               </p>
             </div>
-            <div className="bg-surface-high p-4">
+            <div className="bg-surface-high p-3.5">
               <p className="bf-label">RECOMMENDED</p>
-              <p className="bf-data mt-3 text-[0.9rem] text-primary">
+              <p className="bf-data mt-2.5 text-[0.8rem] text-primary">
                 {formatCurrency(recommendedAmount(submission, submission.recommendedPct), 0)} USDT
               </p>
               <p className="bf-label mt-2 text-muted">{submission.recommendedPct}% OF TIER</p>
             </div>
-            <div className="bg-surface-high p-4">
+            <div className="bg-surface-high p-3.5">
               <p className="bf-label">CURRENT STATUS</p>
-              <StatusChip status={status} className="mt-3" />
+              <StatusChip status={status} className="mt-2.5" />
             </div>
           </div>
         </div>
 
         {status === "DISPUTE OPEN" && submission.disputeNote ? (
-          <div className="border-l-[3px] border-amber bg-amber/10 p-4">
+          <div className="border-l-[3px] border-amber bg-amber/10 p-3.5">
             <p className="bf-label text-amber">DISPUTE NOTE</p>
-            <p className="mt-2 text-[0.8rem] leading-6 text-muted">{submission.disputeNote.reason}</p>
+            <p className="mt-2 text-[0.76rem] leading-6 text-muted">{submission.disputeNote.reason}</p>
             {submission.disputeNote.justification ? (
-              <p className="mt-2 text-[0.8rem] leading-6 text-muted">
+              <p className="mt-2 text-[0.76rem] leading-6 text-muted">
                 {submission.disputeNote.justification}
               </p>
             ) : null}
-            <p className="mt-3 bf-data text-[0.85rem] text-amber">
+            <p className="mt-3 bf-data text-[0.78rem] text-amber">
               REQUESTED {submission.disputeNote.desiredPct}% | CURRENT {submission.disputeNote.approvedPct}%
             </p>
           </div>
         ) : null}
 
-        <div className="grid gap-8 xl:grid-cols-[0.68fr_0.32fr]">
-          <div className="space-y-6">
-            <div className="bg-surface-low p-5">
-              <div className="grid gap-5 md:grid-cols-[0.22fr_1fr_0.28fr] md:items-start">
+        <div className="grid gap-5 xl:grid-cols-[0.68fr_0.32fr]">
+          <div className="space-y-4">
+            <div className="bg-surface-low p-4">
+              <div className="grid gap-4 md:grid-cols-[0.22fr_1fr_0.28fr] md:items-start">
                 <div className="space-y-2">
                   <p className="bf-label">AI SCORE</p>
-                  <p className={`bf-data text-[1.85rem] ${scoreTone(submission.aiScore)}`}>
+                  <p className={`bf-data text-[1.5rem] ${scoreTone(submission.aiScore)}`}>
                     {submission.aiScore.toFixed(1)}
                   </p>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-5">
+                <div className="grid gap-2.5 sm:grid-cols-5">
                   {submission.subScores.map((item) => (
                     <div key={item.label} className="space-y-2">
                       <p className="bf-label">{item.label}</p>
@@ -202,15 +202,15 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
               </div>
             </div>
 
-            <div className="bg-surface-low p-5">
+            <div className="bg-surface-low p-4">
               <p className="bf-label">FULL DESCRIPTION</p>
-              <p className="mt-4 text-[0.82rem] leading-7 text-muted">{submission.description}</p>
+              <p className="mt-3 text-[0.78rem] leading-6 text-muted">{submission.description}</p>
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-2">
-              <div className="bg-surface-low p-5">
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="bg-surface-low p-4">
                 <p className="bf-label">REPRODUCTION STEPS</p>
-                <ol className="mt-4 space-y-2 font-mono text-[0.82rem] leading-7 text-muted">
+                <ol className="mt-3 space-y-2 font-mono text-[0.78rem] leading-6 text-muted">
                   {submission.stepsToReproduce.map((step, index) => (
                     <li key={step}>
                       {index + 1}. {step}
@@ -219,26 +219,26 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
                 </ol>
               </div>
 
-              <div className="bg-surface-low p-5">
+              <div className="bg-surface-low p-4">
                 <p className="bf-label">IMPACT ASSESSMENT</p>
-                <p className="mt-4 text-[0.82rem] leading-7 text-muted">{submission.impactAssessment}</p>
+                <p className="mt-3 text-[0.78rem] leading-6 text-muted">{submission.impactAssessment}</p>
                 {submission.internalNote ? (
-                  <div className="mt-5 bg-background p-4">
+                  <div className="mt-4 bg-background p-3.5">
                     <p className="bf-label text-primary">INTERNAL NOTE</p>
-                    <p className="mt-2 text-[0.8rem] leading-6 text-muted">{submission.internalNote}</p>
+                    <p className="mt-2 text-[0.76rem] leading-6 text-muted">{submission.internalNote}</p>
                   </div>
                 ) : null}
               </div>
             </div>
 
-            <div className="space-y-4 bg-surface-low p-5">
-              <div className="flex flex-wrap gap-4 border-b border-outline-variant/15 pb-3">
+            <div className="space-y-4 bg-surface-low p-4">
+              <div className="flex flex-wrap gap-3 border-b border-outline-variant/15 pb-2.5">
                 {evidenceTabs.map((tab) => (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => setActiveTab(tab)}
-                    className={`border-b-2 pb-3 font-mono text-[0.72rem] uppercase tracking-label transition-colors duration-100 ease-linear ${
+                    className={`border-b-2 pb-2.5 font-mono text-[0.68rem] uppercase tracking-label transition-colors duration-100 ease-linear ${
                       activeTab === tab
                         ? "border-primary text-primary"
                         : "border-transparent text-muted hover:text-foreground"
@@ -250,7 +250,7 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
               </div>
 
               {activeTab === "POC CODE" ? (
-                <pre className="overflow-x-auto bg-surface-container-highest p-4 font-mono text-[0.72rem] leading-6 text-muted">
+                <pre className="overflow-x-auto bg-surface-container-highest p-3.5 font-mono text-[0.68rem] leading-6 text-muted">
                   <code>{submission.codeSnippet}</code>
                 </pre>
               ) : null}
@@ -260,20 +260,20 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
               ) : null}
 
               {activeTab === "SCREENSHOTS" ? (
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-3">
                   {submission.screenshots.map((shot) => (
-                    <div key={shot} className="bg-background p-5">
+                    <div key={shot} className="bg-background p-4">
                       <p className="bf-label text-primary">SCREENSHOT</p>
-                      <p className="mt-3 text-[0.8rem] leading-6 text-muted">{shot}</p>
+                      <p className="mt-2.5 text-[0.76rem] leading-6 text-muted">{shot}</p>
                     </div>
                   ))}
                 </div>
               ) : null}
 
               {activeTab === "GITHUB" ? (
-                <div className="bg-background p-5">
+                <div className="bg-background p-4">
                   <p className="bf-label text-primary">GITHUB METADATA</p>
-                  <div className="mt-4 space-y-2 text-[0.8rem] leading-6 text-muted">
+                  <div className="mt-3 space-y-2 text-[0.76rem] leading-6 text-muted">
                     <p>REPO: {submission.github.repo}</p>
                     <p>BRANCH: {submission.github.branch}</p>
                     <p>UPDATED: {submission.github.updatedAt}</p>
@@ -284,11 +284,11 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
             </div>
           </div>
 
-          <aside className="space-y-6 xl:sticky xl:top-8 xl:self-start">
-            <div className="space-y-5 bg-surface-low p-5">
+          <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+            <div className="space-y-4 bg-surface-low p-4">
               <p className="bf-label text-primary">PAYOUT DECISION</p>
 
-              <div className="space-y-4">
+              <div className="space-y-3.5">
                 <input
                   type="range"
                   min={0}
@@ -312,9 +312,9 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
                 </div>
               </div>
 
-              <div className="space-y-2 bg-background p-4">
-                <p className="bf-data text-[1.7rem] text-primary">{payoutPct}%</p>
-                <p className="bf-data text-[0.9rem] text-primary">
+              <div className="space-y-2 bg-background p-3.5">
+                <p className="bf-data text-[1.4rem] text-primary">{payoutPct}%</p>
+                <p className="bf-data text-[0.8rem] text-primary">
                   {formatCurrency(payoutAmount, 0)} USDT
                 </p>
               </div>
@@ -407,9 +407,9 @@ export function AdminSubmissionDetailView({ submission }: { submission: AdminSub
                 </div>
               )}
 
-              {decisionError ? <p className="text-[0.8rem] leading-6 text-amber">{decisionError}</p> : null}
+              {decisionError ? <p className="text-[0.76rem] leading-6 text-amber">{decisionError}</p> : null}
 
-              <p className="text-[0.8rem] leading-6 text-muted">
+              <p className="text-[0.76rem] leading-6 text-muted">
                 Approved payouts enter a 48-hour dispute window before autonomous USDT release from
                 escrow.
               </p>

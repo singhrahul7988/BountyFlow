@@ -51,7 +51,13 @@ export function AdminTreasuryView({
   }, []);
 
   const chartMax = Math.max(...chart.map((point) => point.amount), 1);
-  const yAxisLabels = [Math.round(chartMax), Math.round(chartMax * 0.66), Math.round(chartMax * 0.33)];
+  const yAxisTicks = useMemo(() => {
+    const tickCount = 4;
+    return Array.from({ length: tickCount + 1 }, (_, index) => {
+      const ratio = (tickCount - index) / tickCount;
+      return Number((chartMax * ratio).toFixed(0));
+    });
+  }, [chartMax]);
 
   const visibleTransactions = useMemo(() => {
     if (activeFilter === "ALL") {
@@ -71,113 +77,124 @@ export function AdminTreasuryView({
   }, [activeFilter, transactions]);
 
   return (
-    <section className="p-5 md:p-6 xl:p-7">
-      <div className="space-y-8">
-        <div className="space-y-3">
+    <section className="p-4 md:p-5 xl:p-6">
+      <div className="space-y-5">
+        <div className="space-y-2.5">
           <p className="bf-label text-primary">OWNER TREASURY</p>
-          <h1 className="bf-display text-[2.3rem] leading-none tracking-tightHeading sm:text-[3.3rem]">
+          <h1 className="bf-display text-[1.65rem] leading-none tracking-tightHeading sm:text-[2.2rem]">
             TREASURY
           </h1>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-3">
-          <article className="space-y-3 bg-surface-high p-5">
+        <div className="grid gap-3 xl:grid-cols-3">
+          <article className="space-y-2.5 bg-surface-high p-3.5">
             <p className="bf-label">TOTAL DEPOSITED</p>
-            <p className="bf-data text-[1.8rem] text-primary">
+            <p className="bf-data text-[1.28rem] text-primary">
               {formatCurrency(summary.totalDeposited, 0)}
             </p>
-            <p className="text-[0.82rem] leading-6 text-muted">
+            <p className="text-[0.74rem] leading-5 text-muted">
               Total USDT capital committed to the active bounty wallet.
             </p>
           </article>
 
-          <article className="space-y-3 bg-surface-high p-5">
+          <article className="space-y-2.5 bg-surface-high p-3.5">
             <div className="flex items-center justify-between gap-4">
               <p className="bf-label">AVAILABLE BALANCE</p>
               <StatusChip status="EARNING YIELD" />
             </div>
-            <p className="bf-data text-[1.8rem] text-primary">
+            <p className="bf-data text-[1.28rem] text-primary">
               {formatCurrency(availableBalance, 2)}
             </p>
-            <p className="text-[0.82rem] leading-6 text-muted">
+            <p className="text-[0.74rem] leading-5 text-muted">
               Idle funds are routed through Aave V3 until they are reserved or withdrawn.
             </p>
           </article>
 
-          <article className="space-y-3 bg-surface-high p-5">
+          <article className="space-y-2.5 bg-surface-high p-3.5">
             <p className="bf-label">YIELD EARNED</p>
-            <p className="bf-data text-[1.8rem] text-primary">
+            <p className="bf-data text-[1.28rem] text-primary">
               {formatCurrency(yieldEarned, 2)}
             </p>
-            <p className="text-[0.82rem] leading-6 text-muted">
+            <p className="text-[0.74rem] leading-5 text-muted">
               Live counter increments every 3 seconds from the simulated yield route.
             </p>
           </article>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[0.94fr_1.06fr] xl:items-start">
-          <section className="space-y-5 bg-surface-high p-5 md:p-6">
+        <div className="grid gap-4 xl:grid-cols-[0.94fr_1.06fr] xl:items-start">
+          <section className="space-y-4 bg-surface-high p-4 md:p-5">
             <div className="space-y-2.5">
               <p className="bf-label text-primary">DAILY YIELD EARNED (LAST 14 DAYS)</p>
-              <h2 className="bf-display text-[1.35rem] leading-none tracking-tightHeading">
+              <h2 className="bf-display text-[1.08rem] leading-none tracking-tightHeading">
                 YIELD CHART
               </h2>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-[auto_1fr] md:items-end">
-              <div className="flex h-36 flex-col justify-between pb-5">
-                {yAxisLabels.map((label) => (
-                  <span key={label} className="bf-data text-[0.72rem] text-muted">
-                    {formatCurrency(label, 0)}
-                  </span>
+            <div className="grid grid-cols-[3rem_1fr] gap-3">
+              <div className="relative h-[15rem]">
+                {yAxisTicks.map((tickValue, index) => (
+                  <div
+                    key={`${tickValue}-${index}`}
+                    className="absolute left-0 right-0 flex -translate-y-1/2 items-center justify-end"
+                    style={{ top: `${(index / (yAxisTicks.length - 1)) * 100}%` }}
+                  >
+                    <span className="font-data text-[0.56rem] text-muted">
+                      ${tickValue}
+                    </span>
+                  </div>
                 ))}
               </div>
 
-              <div className="space-y-3">
-                <div className="relative h-36">
-                  <div className="absolute inset-0 grid grid-cols-14 items-end gap-2">
-                    {chart.map((point, index) => {
-                      const isToday = index === chart.length - 1;
-                      const height = `${(point.amount / chartMax) * 100}%`;
-                      const isHovered = hoveredDay === point.day;
+              <div className="relative h-[15rem] border-l border-b border-outline/18 pl-3 pb-6">
+                {yAxisTicks.map((tickValue, index) => (
+                  <div
+                    key={`grid-${tickValue}-${index}`}
+                    className="absolute left-3 right-0 border-t border-outline/10"
+                    style={{ top: `${(index / (yAxisTicks.length - 1)) * 100}%` }}
+                  />
+                ))}
 
-                      return (
+                <div className="relative flex h-full items-end gap-2">
+                  {chart.map((point, index) => {
+                    const isToday = index === chart.length - 1;
+                    const barHeight = `${(point.amount / chartMax) * 100}%`;
+                    const isHovered = hoveredDay === point.day;
+
+                    return (
+                      <div
+                        key={point.day}
+                        className="relative flex min-w-0 flex-1 flex-col items-center justify-end"
+                        onMouseEnter={() => setHoveredDay(point.day)}
+                        onMouseLeave={() => setHoveredDay(null)}
+                      >
                         <div
-                          key={point.day}
-                          className="relative flex h-full items-end"
-                          onMouseEnter={() => setHoveredDay(point.day)}
-                          onMouseLeave={() => setHoveredDay(null)}
+                          className={`absolute -top-7 whitespace-nowrap font-data text-[0.56rem] transition-colors duration-150 ${
+                            isHovered ? "text-primary" : "text-muted"
+                          }`}
                         >
-                          {isHovered ? (
-                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-background px-2 py-1 font-mono text-[0.64rem] uppercase tracking-label text-primary">
-                              {formatCurrency(point.amount, 2)}
-                            </div>
-                          ) : null}
-                          <div
-                            className={`w-full ${isToday ? "bg-primary-gradient" : "bg-primary/40"} transition-[height] duration-700 ease-out`}
-                            style={{ height: isChartVisible ? height : "0%" }}
-                          />
+                          {isHovered ? formatCurrency(point.amount, 2) : ""}
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-14 gap-2">
-                  {chart.map((point) => (
-                    <span key={point.day} className="text-center font-data text-[0.54rem] text-muted">
-                      {point.day}
-                    </span>
-                  ))}
+                        <div
+                          className={`w-full max-w-[1.35rem] transition-[height] duration-700 ease-out ${
+                            isToday ? "bg-primary-gradient" : "bg-primary/55"
+                          } ${isHovered ? "opacity-100" : "opacity-90"}`}
+                          style={{ height: isChartVisible ? barHeight : "0%" }}
+                        />
+                        <span className="absolute -bottom-5 font-data text-[0.52rem] text-muted">
+                          {point.day.replace("MAR ", "")}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
           </section>
 
-          <section className="space-y-5 bg-surface-high p-5 md:p-6">
+          <section className="space-y-4 bg-surface-high p-4 md:p-5">
             <div className="space-y-2.5">
               <p className="bf-label text-primary">FUND ALLOCATION</p>
-              <h2 className="bf-display text-[1.35rem] leading-none tracking-tightHeading">
+              <h2 className="bf-display text-[1.08rem] leading-none tracking-tightHeading">
                 POOL BREAKDOWN
               </h2>
             </div>
@@ -189,7 +206,7 @@ export function AdminTreasuryView({
                     {["CATEGORY", "AMOUNT", "% OF POOL", "STATUS"].map((heading) => (
                       <th
                         key={heading}
-                        className="px-4 py-3.5 font-mono text-[0.68rem] uppercase tracking-label text-muted"
+                        className="px-3 py-2.5 font-mono text-[0.6rem] uppercase tracking-label text-muted"
                       >
                         {heading}
                       </th>
@@ -199,16 +216,16 @@ export function AdminTreasuryView({
                 <tbody>
                   {allocation.map((row) => (
                     <tr key={row.category}>
-                      <td className="border-b border-outline-variant/15 px-4 py-4 font-data text-[0.82rem] text-foreground">
+                      <td className="border-b border-outline-variant/15 px-3 py-3 font-data text-[0.74rem] text-foreground">
                         {row.category}
                       </td>
-                      <td className="border-b border-outline-variant/15 px-4 py-4 font-data text-[0.84rem] text-primary">
+                      <td className="border-b border-outline-variant/15 px-3 py-3 font-data text-[0.76rem] text-primary">
                         {formatCurrency(row.amount, 0)}
                       </td>
-                      <td className="border-b border-outline-variant/15 px-4 py-4 font-data text-[0.82rem] text-muted">
+                      <td className="border-b border-outline-variant/15 px-3 py-3 font-data text-[0.74rem] text-muted">
                         {row.percentOfPool}%
                       </td>
-                      <td className="border-b border-outline-variant/15 px-4 py-4">
+                      <td className="border-b border-outline-variant/15 px-3 py-3">
                         <StatusChip status={row.status} />
                       </td>
                     </tr>
@@ -219,22 +236,22 @@ export function AdminTreasuryView({
           </section>
         </div>
 
-        <section className="space-y-5 bg-surface-high p-5 md:p-6">
+        <section className="space-y-4 bg-surface-high p-4 md:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
             <div className="space-y-2.5">
               <p className="bf-label text-primary">TRANSACTION HISTORY</p>
-              <h2 className="bf-display text-[1.35rem] leading-none tracking-tightHeading">
+              <h2 className="bf-display text-[1.08rem] leading-none tracking-tightHeading">
                 TREASURY LEDGER
               </h2>
             </div>
 
-            <div className="flex flex-wrap gap-4 border-b border-outline-variant/15 pb-3">
+            <div className="flex flex-wrap gap-3 border-b border-outline-variant/15 pb-2.5">
               {transactionFilters.map((filterValue) => (
                 <button
                   key={filterValue}
                   type="button"
                   onClick={() => setActiveFilter(filterValue)}
-                  className={`border-b-2 pb-3 font-mono text-[0.78rem] uppercase tracking-label transition-colors duration-100 ease-linear ${
+                  className={`border-b-2 pb-2.5 font-mono text-[0.66rem] uppercase tracking-label transition-colors duration-100 ease-linear ${
                     activeFilter === filterValue
                       ? "border-primary text-primary"
                       : "border-transparent text-muted hover:text-foreground"
@@ -247,13 +264,13 @@ export function AdminTreasuryView({
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-[980px] border-collapse">
+            <table className="min-w-[860px] border-collapse">
               <thead>
                 <tr className="bg-background text-left">
                   {["DATE", "TYPE", "AMOUNT", "DESCRIPTION", "TX HASH"].map((heading) => (
                     <th
                       key={heading}
-                        className="px-4 py-3.5 font-mono text-[0.68rem] uppercase tracking-label text-muted"
+                        className="px-3 py-2.5 font-mono text-[0.6rem] uppercase tracking-label text-muted"
                     >
                       {heading}
                     </th>
@@ -263,12 +280,12 @@ export function AdminTreasuryView({
               <tbody>
                 {visibleTransactions.map((transaction) => (
                   <tr key={transaction.id} className="transition-colors duration-100 ease-linear hover:bg-background">
-                    <td className="border-b border-outline-variant/15 px-4 py-4 font-data text-[0.78rem] text-muted">
+                    <td className="border-b border-outline-variant/15 px-3 py-3 font-data text-[0.7rem] text-muted">
                       {transaction.date}
                     </td>
-                    <td className="border-b border-outline-variant/15 px-4 py-4">
+                    <td className="border-b border-outline-variant/15 px-3 py-3">
                       <span
-                        className={`font-data text-[0.78rem] ${
+                        className={`font-data text-[0.7rem] ${
                           transaction.type === "YIELD" ? "text-primary" : "text-foreground"
                         }`}
                       >
@@ -276,7 +293,7 @@ export function AdminTreasuryView({
                       </span>
                     </td>
                     <td
-                      className={`border-b border-outline-variant/15 px-4 py-4 font-data text-[0.84rem] ${
+                      className={`border-b border-outline-variant/15 px-3 py-3 font-data text-[0.76rem] ${
                         transaction.type === "PAYOUT" ? "text-danger" : "text-primary"
                       }`}
                     >
@@ -284,13 +301,13 @@ export function AdminTreasuryView({
                         ? `-${formatCurrency(Math.abs(transaction.amount), 2)}`
                         : formatCurrency(transaction.amount, 2)}
                     </td>
-                    <td className="border-b border-outline-variant/15 px-4 py-4 text-[0.8rem] leading-6 text-muted">
+                    <td className="border-b border-outline-variant/15 px-3 py-3 text-[0.72rem] leading-5 text-muted">
                       {transaction.description}
                     </td>
-                    <td className="border-b border-outline-variant/15 px-4 py-4">
+                    <td className="border-b border-outline-variant/15 px-3 py-3">
                       <button
                         type="button"
-                        className="inline-flex items-center gap-2 font-data text-[0.78rem] text-primary transition-colors duration-100 ease-linear hover:text-primary-fixed"
+                        className="inline-flex items-center gap-2 font-data text-[0.7rem] text-primary transition-colors duration-100 ease-linear hover:text-primary-fixed"
                       >
                         <span>{transaction.txHash}</span>
                         <svg
