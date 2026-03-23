@@ -9,11 +9,7 @@ const transportUrl = getConfiguredTransportUrl();
 
 export const wagmiConfig = createConfig({
   chains: [chain],
-  connectors: [
-    injected({
-      target: "metaMask"
-    })
-  ],
+  connectors: [injected()],
   transports: {
     [chain.id]: http(transportUrl)
   }

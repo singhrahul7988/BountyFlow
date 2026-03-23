@@ -48,6 +48,8 @@ export function WalletLinkButton({
     currentUser?.walletAddress === address;
   const buttonTone =
     variant === "primary" ? "bf-button-primary" : "bf-button-secondary";
+  const missingWalletMessage =
+    "No browser wallet was detected. Install MetaMask or Rabby, then reopen BountyFlow and try again. On mobile, open the app inside the wallet browser.";
 
   const buttonLabel = useMemo(() => {
     if (!currentUser) {
@@ -110,8 +112,13 @@ export function WalletLinkButton({
       let activeChainId = chainId;
 
       if (!isConnected || !activeAddress) {
+        if (typeof window !== "undefined" && !("ethereum" in window)) {
+          setError(missingWalletMessage);
+          return;
+        }
+
         if (!connector) {
-          setError("No injected wallet connector is available.");
+          setError(missingWalletMessage);
           return;
         }
 
@@ -174,7 +181,12 @@ export function WalletLinkButton({
       await refreshAuthUser();
       setNotice("Wallet linked successfully.");
     } catch (linkError) {
-      setError(linkError instanceof Error ? linkError.message : "Wallet link failed.");
+      const nextMessage =
+        linkError instanceof Error ? linkError.message : "Wallet link failed.";
+
+      setError(
+        /provider not found/i.test(nextMessage) ? missingWalletMessage : nextMessage
+      );
     }
   }
 
@@ -207,7 +219,10 @@ export function WalletLinkButton({
       {showInlineFeedback && notice ? <p className="bf-label text-primary">{notice}</p> : null}
       {showInlineFeedback && error ? <p className="bf-label text-error">{error}</p> : null}
       {showInlineFeedback && showHelperText && currentUser && !currentUser.walletLinked ? (
-        <p className="bf-label text-muted">LINK A REAL PAYOUT WALLET TO ENABLE LIVE SETTLEMENT</p>
+        <p className="bf-label text-muted">
+          LINK A REAL PAYOUT WALLET TO ENABLE LIVE SETTLEMENT. USE METAMASK, RABBY, OR A WALLET
+          BROWSER.
+        </p>
       ) : null}
     </div>
   );
