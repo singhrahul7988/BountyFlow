@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { sanitizeNextPath } from "@/lib/auth";
 import { useAppStore } from "@/lib/stores/app-store";
 
 export function AuthConfirmationBridge() {
@@ -18,7 +19,7 @@ export function AuthConfirmationBridge() {
     params.set("confirmed", "1");
 
     const role = searchParams.get("role");
-    const next = searchParams.get("next");
+    const next = sanitizeNextPath(searchParams.get("next"));
 
     if (role === "owner" || role === "researcher") {
       params.set("role", role);

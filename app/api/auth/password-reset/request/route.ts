@@ -4,6 +4,11 @@ import { clearAuthFailures, getAuthRateLimitStatus, recordAuthFailure } from "@/
 import { buildAuthErrorResponse } from "@/lib/server/auth-responses";
 import { setPasswordResetCookies } from "@/lib/server/auth-session";
 import { isCaptchaConfigured, verifyCaptchaToken } from "@/lib/server/captcha";
+import {
+  parseJsonObjectBody,
+  readOptionalString,
+  readRequiredString
+} from "@/lib/server/request-validation";
 import { createClient } from "@/lib/supabase/server";
 
 type PasswordResetRequestBody = {
@@ -12,14 +17,28 @@ type PasswordResetRequestBody = {
 };
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => null)) as PasswordResetRequestBody | null;
-  const email = body?.email?.trim().toLowerCase() || "";
+  const parsedBody = await parseJsonObjectBody(request, ["email", "captchaToken"]);
 
-  if (!email) {
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const email = readRequiredString(parsedBody.value, "email", {
+    maxLength: 320,
+    lowercase: true,
+    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  });
+  const captchaToken = readOptionalString(parsedBody.value, "captchaToken", { maxLength: 4000 });
+
+  if (!email.ok) {
     return buildAuthErrorResponse("Email is required.", 400, undefined, request.url);
   }
 
-  const rateLimit = getAuthRateLimitStatus(request, "password-reset", email);
+  if (!captchaToken.ok) {
+    return buildAuthErrorResponse("CAPTCHA verification failed.", 400, undefined, request.url);
+  }
+
+  const rateLimit = getAuthRateLimitStatus(request, "password-reset", email.value);
 
   if (rateLimit.locked) {
     return buildAuthErrorResponse(
@@ -30,7 +49,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const captchaResult = await verifyCaptchaToken(body?.captchaToken, request.headers.get("x-forwarded-for"));
+  const captchaResult = await verifyCaptchaToken(captchaToken.value, request.headers.get("x-forwarded-for"));
 
   if (!captchaResult.ok) {
     recordAuthFailure(rateLimit.key);
@@ -43,19 +62,19 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  const { error } = await supabase.auth.resetPasswordForEmail(email.value);
 
   if (error) {
     recordAuthFailure(rateLimit.key);
-    return buildAuthErrorResponse(error.message, 400, undefined, request.url);
+    return buildAuthErrorResponse("Unable to send a password reset code.", 400, undefined, request.url);
   }
 
   clearAuthFailures(rateLimit.key);
 
   const response = NextResponse.json({
     ok: true,
-    message: `Password reset code sent to ${email}. Enter the OTP and your new password to continue.`
+    message: `Password reset code sent to ${email.value}. Enter the OTP and your new password to continue.`
   });
-  setPasswordResetCookies(response, email, request.url);
+  setPasswordResetCookies(response, email.value, request.url);
   return response;
 }

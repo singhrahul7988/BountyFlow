@@ -9,6 +9,7 @@ import { createRemoteDemoSubmission } from "@/lib/demo-api";
 import type { AdminSubmission } from "@/lib/admin-submissions-data";
 import type { BountyDetail } from "@/lib/bounty-data";
 import type { ResearcherSubmission, UploadedEvidenceFile } from "@/lib/dashboard-data";
+import { MAX_EVIDENCE_FILES, scanEvidenceFile } from "@/lib/evidence-validation";
 import type { AnalyzerMetric } from "@/lib/mock-data";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
@@ -224,25 +225,33 @@ export function SubmissionExperience({ bounty }: { bounty: BountyDetail }) {
     setStep((currentStep) => (currentStep > 1 ? ((currentStep - 1) as SubmissionStep) : currentStep));
   }
 
-  function handleIncomingFiles(fileList: FileList | null) {
+  async function handleIncomingFiles(fileList: FileList | null) {
     if (!fileList) {
       return;
     }
 
     const accepted: File[] = [];
-    let sizeError = "";
+    let validationError = "";
+    const currentCount = state.files.length;
 
-    Array.from(fileList).forEach((file) => {
-      if (file.size > 50 * 1024 * 1024) {
-        sizeError = `${file.name} exceeds the 50MB limit.`;
-        return;
+    for (const file of Array.from(fileList)) {
+      if (currentCount + accepted.length >= MAX_EVIDENCE_FILES) {
+        validationError = `You can attach up to ${MAX_EVIDENCE_FILES} evidence files.`;
+        break;
+      }
+
+      const fileError = await scanEvidenceFile(file);
+
+      if (fileError) {
+        validationError = `${file.name}: ${fileError}`;
+        break;
       }
 
       accepted.push(file);
-    });
+    }
 
-    if (sizeError) {
-      setErrors((currentErrors) => ({ ...currentErrors, evidence: sizeError }));
+    if (validationError) {
+      setErrors((currentErrors) => ({ ...currentErrors, evidence: validationError }));
     }
 
     if (accepted.length) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { handleServerError } from "@/lib/server/api-errors";
 import { requireApiRole } from "@/lib/server/authorization";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 
@@ -29,7 +30,7 @@ export async function POST() {
     .eq("owner_id", user.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleServerError(error, { route: "/api/notifications/read-all" }, "Unable to update notifications.");
   }
 
   return NextResponse.json({ ok: true });

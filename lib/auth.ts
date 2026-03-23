@@ -39,12 +39,28 @@ export function getDefaultRouteForRole(role: UserRole) {
   return role === "owner" ? "/admin" : "/dashboard";
 }
 
+export function sanitizeNextPath(nextPath?: string | null) {
+  if (!nextPath) {
+    return null;
+  }
+
+  const normalized = nextPath.trim();
+
+  if (!normalized.startsWith("/") || normalized.startsWith("//") || normalized.length > 200) {
+    return null;
+  }
+
+  return normalized;
+}
+
 export function getAuthHref(role: UserRole, nextPath?: string) {
   const params = new URLSearchParams();
   params.set("role", role);
 
-  if (nextPath) {
-    params.set("next", nextPath);
+  const safeNextPath = sanitizeNextPath(nextPath);
+
+  if (safeNextPath) {
+    params.set("next", safeNextPath);
   }
 
   return `/auth?${params.toString()}`;

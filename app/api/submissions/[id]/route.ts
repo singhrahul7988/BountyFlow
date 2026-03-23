@@ -3,11 +3,16 @@ import { NextResponse } from "next/server";
 import type { AdminSubmissionStatus } from "@/lib/admin-submissions-data";
 import { applySubmissionDecisionToResearcher } from "@/lib/demo-lifecycle";
 import { normalizeStoredSubmission } from "@/lib/demo-persistence";
-import type { SubmissionDecision } from "@/lib/demo-types";
+import { handleServerError } from "@/lib/server/api-errors";
 import {
   rejectMissingOwnedResource,
   requireApiRole
 } from "@/lib/server/authorization";
+import { validateSubmissionDecision } from "@/lib/server/demo-payload-validation";
+import {
+  parseJsonObjectBody,
+  validateIdentifier
+} from "@/lib/server/request-validation";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 
 export async function PATCH(
@@ -21,24 +26,31 @@ export async function PATCH(
     );
   }
 
-  const body = (await request.json().catch(() => null)) as SubmissionDecision | null;
+  const submissionId = validateIdentifier(params.id, "id", {
+    maxLength: 40,
+    pattern: /^BF-[A-Z0-9-]+$/
+  });
 
-  if (!body?.status) {
-    return NextResponse.json({ error: "Decision payload is required." }, { status: 400 });
+  if (!submissionId.ok) {
+    return submissionId.response;
   }
 
-  const allowedStatuses: AdminSubmissionStatus[] = [
-    "AI SCORED",
-    "UNDER REVIEW",
-    "DISPUTE WINDOW",
-    "DISPUTE OPEN",
-    "FIX IN PROGRESS",
-    "REJECTED",
-    "PAID"
-  ];
+  const parsedBody = await parseJsonObjectBody(request, [
+    "status",
+    "payoutPct",
+    "rejectionReason",
+    "disputeNote",
+    "txHash"
+  ]);
 
-  if (!allowedStatuses.includes(body.status)) {
-    return NextResponse.json({ error: "Unsupported submission status." }, { status: 400 });
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const body = validateSubmissionDecision(parsedBody.value);
+
+  if (!body.ok) {
+    return body.response;
   }
 
   const auth = await requireApiRole({
@@ -56,11 +68,11 @@ export async function PATCH(
   const { data: existingRow, error: loadError } = await supabase
     .from("demo_submissions")
     .select("admin_id, researcher_submission_id, payload, owner_id")
-    .eq("admin_id", params.id)
+    .eq("admin_id", submissionId.value)
     .maybeSingle();
 
   if (loadError) {
-    return NextResponse.json({ error: loadError.message }, { status: 500 });
+    return handleServerError(loadError, { route: "/api/submissions/[id]" }, "Unable to update submission.");
   }
 
   if (!existingRow) {
@@ -69,7 +81,7 @@ export async function PATCH(
       userId: user.id,
       email: user.email ?? null,
       resourceType: "submission",
-      resourceId: params.id,
+      resourceId: submissionId.value,
       message: "Submission not found."
     });
   }
@@ -82,33 +94,33 @@ export async function PATCH(
 
   const nextAdminSubmission = {
     ...normalized.adminSubmission,
-    status: body.status,
-    recommendedPct: body.payoutPct,
-    disputeNote: body.disputeNote ?? normalized.adminSubmission.disputeNote
+    status: body.value.status,
+    recommendedPct: body.value.payoutPct,
+    disputeNote: body.value.disputeNote ?? normalized.adminSubmission.disputeNote
   };
   const nextResearcherSubmission = applySubmissionDecisionToResearcher(
     normalized.researcherSubmission,
-    { [nextAdminSubmission.id]: body }
+    { [nextAdminSubmission.id]: body.value }
   );
 
   const nextPayload = {
     adminSubmission: nextAdminSubmission,
     researcherSubmission: nextResearcherSubmission,
-    decision: body
+    decision: body.value
   };
 
   const { data, error } = await supabase
     .from("demo_submissions")
     .update({
-      status: body.status,
+      status: body.value.status,
       payload: nextPayload
     })
-    .eq("admin_id", params.id)
+    .eq("admin_id", submissionId.value)
     .select("admin_id, researcher_submission_id, payload")
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleServerError(error, { route: "/api/submissions/[id]" }, "Unable to update submission.");
   }
 
   const item = normalizeStoredSubmission(data);

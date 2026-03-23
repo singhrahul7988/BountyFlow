@@ -10,6 +10,10 @@ import {
   getPasswordResetWindowMs,
   readPasswordResetState
 } from "@/lib/server/auth-session";
+import {
+  parseJsonObjectBody,
+  readRequiredString
+} from "@/lib/server/request-validation";
 import { createClient } from "@/lib/supabase/server";
 
 type PasswordResetConfirmBody = {
@@ -19,12 +23,25 @@ type PasswordResetConfirmBody = {
 };
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => null)) as PasswordResetConfirmBody | null;
-  const email = body?.email?.trim().toLowerCase() || "";
-  const otpCode = body?.otpCode?.trim() || "";
-  const newPassword = body?.newPassword || "";
+  const parsedBody = await parseJsonObjectBody(request, ["email", "otpCode", "newPassword"]);
 
-  if (!email || !otpCode || !newPassword) {
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const email = readRequiredString(parsedBody.value, "email", {
+    maxLength: 320,
+    lowercase: true,
+    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  });
+  const otpCode = readRequiredString(parsedBody.value, "otpCode", {
+    minLength: 4,
+    maxLength: 12,
+    pattern: /^[A-Za-z0-9-]+$/
+  });
+  const newPassword = readRequiredString(parsedBody.value, "newPassword", { maxLength: 128 });
+
+  if (!email.ok || !otpCode.ok || !newPassword.ok) {
     return buildAuthErrorResponse(
       "Email, OTP, and new password are required.",
       400,
@@ -33,7 +50,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const passwordError = validatePasswordStrength(newPassword);
+  const passwordError = validatePasswordStrength(newPassword.value);
 
   if (passwordError) {
     return buildAuthErrorResponse(passwordError, 400, undefined, request.url);
@@ -43,7 +60,7 @@ export async function POST(request: NextRequest) {
   const resetState = readPasswordResetState(cookieStore);
   const now = Date.now();
 
-  if (!resetState.email || resetState.email !== email) {
+  if (!resetState.email || resetState.email !== email.value) {
     return buildAuthErrorResponse(
       "Password reset session is invalid. Request a new reset code.",
       400,
@@ -65,21 +82,21 @@ export async function POST(request: NextRequest) {
 
   const supabase = createClient();
   const { error: verifyError } = await supabase.auth.verifyOtp({
-    email,
-    token: otpCode,
+    email: email.value,
+    token: otpCode.value,
     type: "recovery"
   });
 
   if (verifyError) {
-    return buildAuthErrorResponse(verifyError.message, 400, undefined, request.url);
+    return buildAuthErrorResponse("Password reset code is invalid or expired.", 400, undefined, request.url);
   }
 
   const { error: updateError } = await supabase.auth.updateUser({
-    password: newPassword
+    password: newPassword.value
   });
 
   if (updateError) {
-    return buildAuthErrorResponse(updateError.message, 400, undefined, request.url);
+    return buildAuthErrorResponse("Unable to update the password.", 400, undefined, request.url);
   }
 
   await supabase.auth.signOut({ scope: "global" });

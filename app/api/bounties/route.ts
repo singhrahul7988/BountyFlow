@@ -13,6 +13,12 @@ import {
   rejectUnauthorizedResourceAccess,
   requireApiRole
 } from "@/lib/server/authorization";
+import { handleServerError } from "@/lib/server/api-errors";
+import { validateBountyDetail } from "@/lib/server/demo-payload-validation";
+import {
+  parseJsonObjectBody,
+  readObject
+} from "@/lib/server/request-validation";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,7 +34,7 @@ export async function GET() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json({ items: [], error: error.message }, { status: 500 });
+    return handleServerError(error, { route: "/api/bounties" }, "Unable to load bounties.");
   }
 
   const items = (data ?? [])
@@ -46,11 +52,49 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json().catch(() => null)) as { bounty?: BountyDetail } | null;
-  const bounty = body?.bounty;
+  const parsedBody = await parseJsonObjectBody(request, ["bounty"]);
 
-  if (!bounty) {
-    return NextResponse.json({ error: "Bounty payload is required." }, { status: 400 });
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const bountyObject = readObject(parsedBody.value, "bounty", [
+    "id",
+    "slug",
+    "title",
+    "platform",
+    "platformType",
+    "platformUrl",
+    "shortDescription",
+    "description",
+    "severity",
+    "rewardPool",
+    "rewardTiers",
+    "submissionCount",
+    "resolvedCount",
+    "activeCount",
+    "escrowBalance",
+    "escrowAddress",
+    "status",
+    "createdAt",
+    "tags",
+    "acceptedSeverities",
+    "acceptedEvidenceTypes",
+    "scopeIn",
+    "scopeOut",
+    "severityDefinitions",
+    "rules",
+    "recentActivity"
+  ]);
+
+  if (!bountyObject.ok) {
+    return bountyObject.response;
+  }
+
+  const bounty = validateBountyDetail(bountyObject.value);
+
+  if (!bounty.ok) {
+    return bounty.response;
   }
 
   const auth = await requireApiRole({
@@ -68,11 +112,11 @@ export async function POST(request: Request) {
   const { data: existingBounty, error: existingBountyError } = await supabase
     .from("demo_bounties")
     .select("owner_id")
-    .eq("slug", bounty.slug)
+    .eq("slug", bounty.value.slug)
     .maybeSingle();
 
   if (existingBountyError) {
-    return NextResponse.json({ error: existingBountyError.message }, { status: 500 });
+    return handleServerError(existingBountyError, { route: "/api/bounties" }, "Unable to create bounty.");
   }
 
   if (existingBounty?.owner_id && existingBounty.owner_id !== user.id) {
@@ -81,34 +125,42 @@ export async function POST(request: Request) {
       userId: user.id,
       email: user.email ?? null,
       resourceType: "bounty",
-      resourceId: bounty.slug,
+      resourceId: bounty.value.slug,
       message: "This bounty belongs to a different owner."
     });
   }
 
-  const escrowWallet = await provisionEscrowWallet({
-    ownerId: user.id,
-    bountySlug: bounty.slug
-  });
-  const fundingTransfer = await performTreasuryTransfer({
-    ownerId: user.id,
-    bountySlug: bounty.slug,
-    amount: bounty.rewardPool,
-    type: "DEPOSIT",
-    description: `Owner funded ${bounty.title} and armed the escrow wallet.`,
-    recipient: escrowWallet.address
-  });
-  const nextBounty = {
-    ...bounty,
+  let escrowWallet;
+  let fundingTransfer;
+
+  try {
+    escrowWallet = await provisionEscrowWallet({
+      ownerId: user.id,
+      bountySlug: bounty.value.slug
+    });
+    fundingTransfer = await performTreasuryTransfer({
+      ownerId: user.id,
+      bountySlug: bounty.value.slug,
+      amount: bounty.value.rewardPool,
+      type: "DEPOSIT",
+      description: `Owner funded ${bounty.value.title} and armed the escrow wallet.`,
+      recipient: escrowWallet.address
+    });
+  } catch (error) {
+    return handleServerError(error, { route: "/api/bounties" }, "Unable to create bounty.");
+  }
+
+  const nextBounty: BountyDetail = {
+    ...bounty.value,
     escrowAddress: escrowWallet.address,
     recentActivity: [
       {
-        id: `${bounty.slug}-funded`,
+        id: `${bounty.value.slug}-funded`,
         label: "WDK ESCROW WALLET CREATED AND FUNDED",
         timestamp: "JUST NOW",
         outcome: "ESCROW VERIFIED"
       },
-      ...bounty.recentActivity.filter((item) => item.id !== `${bounty.slug}-funded`)
+      ...bounty.value.recentActivity.filter((item) => item.id !== `${bounty.value.slug}-funded`)
     ]
   };
 
@@ -127,13 +179,13 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleServerError(error, { route: "/api/bounties" }, "Unable to create bounty.");
   }
 
   const item = normalizeStoredBounty(data);
 
   if (!item) {
-    return NextResponse.json({ error: "Failed to normalize stored bounty." }, { status: 500 });
+    return handleServerError(new Error("normalize_failed"), { route: "/api/bounties" }, "Unable to create bounty.");
   }
 
   try {

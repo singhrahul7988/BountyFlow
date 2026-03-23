@@ -2,16 +2,15 @@ import { NextResponse } from "next/server";
 import { createPublicClient, http, isAddress } from "viem";
 import { verifySiweMessage } from "viem/siwe";
 
+import { handleServerError } from "@/lib/server/api-errors";
 import { logUnauthorizedAccessAttempt, requireApiRole } from "@/lib/server/authorization";
+import {
+  parseJsonObjectBody,
+  readRequiredNumber,
+  readRequiredString
+} from "@/lib/server/request-validation";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { getConfiguredChain, getConfiguredDomain, getConfiguredTransportUrl } from "@/lib/web3/chains";
-
-type WalletLinkBody = {
-  address?: string;
-  chainId?: number;
-  message?: string;
-  signature?: string;
-};
 
 export async function POST(request: Request) {
   if (!hasSupabaseEnv()) {
@@ -21,18 +20,54 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json().catch(() => null)) as WalletLinkBody | null;
+  const parsedBody = await parseJsonObjectBody(request, [
+    "address",
+    "chainId",
+    "message",
+    "signature"
+  ]);
 
-  if (!body?.address || !body.message || !body.signature || !body.chainId) {
-    return NextResponse.json({ error: "Wallet link payload is incomplete." }, { status: 400 });
+  if (!parsedBody.ok) {
+    return parsedBody.response;
   }
 
-  if (!isAddress(body.address)) {
+  const addressField = readRequiredString(parsedBody.value, "address", { maxLength: 80 });
+  const chainIdField = readRequiredNumber(parsedBody.value, "chainId", {
+    integer: true,
+    min: 1,
+    max: 10_000_000
+  });
+  const messageField = readRequiredString(parsedBody.value, "message", { maxLength: 4000 });
+  const signatureField = readRequiredString(parsedBody.value, "signature", { maxLength: 300 });
+
+  if (!addressField.ok) {
+    return addressField.response;
+  }
+
+  if (!chainIdField.ok) {
+    return chainIdField.response;
+  }
+
+  if (!messageField.ok) {
+    return messageField.response;
+  }
+
+  if (!signatureField.ok) {
+    return signatureField.response;
+  }
+
+  if (!isAddress(addressField.value)) {
     return NextResponse.json({ error: "Invalid wallet address." }, { status: 400 });
   }
 
-  const address = body.address as `0x${string}`;
-  const signature = body.signature as `0x${string}`;
+  const configuredChainId = getConfiguredChain().id;
+
+  if (chainIdField.value !== configuredChainId) {
+    return NextResponse.json({ error: "Unsupported wallet network." }, { status: 400 });
+  }
+
+  const address = addressField.value as `0x${string}`;
+  const signature = signatureField.value as `0x${string}`;
 
   const auth = await requireApiRole({
     route: "/api/profile/wallet",
@@ -45,7 +80,7 @@ export async function POST(request: Request) {
 
   const { supabase, user } = auth;
 
-  if (!body.message.includes(user.id)) {
+  if (!messageField.value.includes(user.id) || !messageField.value.includes(address)) {
     logUnauthorizedAccessAttempt({
       route: "/api/profile/wallet",
       reason: "wallet_message_user_scope_mismatch",
@@ -72,7 +107,7 @@ export async function POST(request: Request) {
   const valid = await verifySiweMessage(publicClient, {
     address,
     domain,
-    message: body.message,
+    message: messageField.value,
     signature
   });
 
@@ -93,17 +128,17 @@ export async function POST(request: Request) {
   const { error } = await supabase
     .from("profiles")
     .update({
-      wallet_address: body.address
+      wallet_address: addressField.value
     })
     .eq("id", user.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleServerError(error, { route: "/api/profile/wallet" }, "Unable to link wallet.");
   }
 
   return NextResponse.json({
     ok: true,
-    walletAddress: body.address,
-    chainId: body.chainId
+    walletAddress: addressField.value,
+    chainId: chainIdField.value
   });
 }

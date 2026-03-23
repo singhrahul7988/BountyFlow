@@ -3,6 +3,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { UploadedEvidenceFile } from "@/lib/dashboard-data";
+import {
+  MAX_EVIDENCE_FILES,
+  scanEvidenceFile,
+  validateEvidenceFileMetadata
+} from "@/lib/evidence-validation";
 import { getSupabaseEvidenceBucket } from "./config";
 
 function sanitizeFileName(value: string) {
@@ -41,11 +46,22 @@ export function getEvidenceKind(name: string, mimeType: string): UploadedEvidenc
 }
 
 export function toLocalEvidenceFile(file: File): UploadedEvidenceFile {
+  const mimeType = file.type || "application/octet-stream";
+  const validationError = validateEvidenceFileMetadata({
+    name: file.name,
+    size: file.size,
+    mimeType
+  });
+
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
   return {
     name: file.name,
     size: file.size,
-    mimeType: file.type || "application/octet-stream",
-    kind: getEvidenceKind(file.name, file.type || "")
+    mimeType,
+    kind: getEvidenceKind(file.name, mimeType)
   };
 }
 
@@ -61,8 +77,18 @@ export async function uploadEvidenceFiles(
   const bucket = getSupabaseEvidenceBucket();
   const uploaded: UploadedEvidenceFile[] = [];
 
+  if (files.length > MAX_EVIDENCE_FILES) {
+    throw new Error(`You can upload up to ${MAX_EVIDENCE_FILES} evidence files per submission.`);
+  }
+
   for (let index = 0; index < files.length; index += 1) {
     const file = files[index];
+    const validationError = await scanEvidenceFile(file);
+
+    if (validationError) {
+      throw new Error(validationError);
+    }
+
     const safeName = sanitizeFileName(file.name);
     const path = `${context.userId}/${context.bountySlug}/${context.submissionId}/${Date.now()}-${index}-${safeName}`;
     const { error } = await supabase.storage.from(bucket).upload(path, file, {

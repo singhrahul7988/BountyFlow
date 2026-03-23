@@ -9,10 +9,16 @@ import {
   performTreasuryTransfer
 } from "@/lib/onchain/service";
 import type { SubmissionDecision } from "@/lib/demo-types";
+import { handleServerError } from "@/lib/server/api-errors";
 import {
   rejectMissingOwnedResource,
   requireApiRole
 } from "@/lib/server/authorization";
+import {
+  parseJsonObjectBody,
+  readEnum,
+  validateIdentifier
+} from "@/lib/server/request-validation";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { getProfileByUserId } from "@/lib/supabase/profiles";
 
@@ -27,12 +33,28 @@ export async function PATCH(
     );
   }
 
-  const body = (await request.json().catch(() => null)) as {
-    resolution?: "ACCEPT_CLAIM" | "HOLD_ORIGINAL";
-  } | null;
+  const submissionId = validateIdentifier(params.id, "id", {
+    maxLength: 40,
+    pattern: /^BF-[A-Z0-9-]+$/
+  });
 
-  if (!body?.resolution) {
-    return NextResponse.json({ error: "Resolution choice is required." }, { status: 400 });
+  if (!submissionId.ok) {
+    return submissionId.response;
+  }
+
+  const parsedBody = await parseJsonObjectBody(request, ["resolution"]);
+
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const resolution = readEnum(parsedBody.value, "resolution", [
+    "ACCEPT_CLAIM",
+    "HOLD_ORIGINAL"
+  ] as const);
+
+  if (!resolution.ok) {
+    return resolution.response;
   }
 
   const auth = await requireApiRole({
@@ -50,11 +72,11 @@ export async function PATCH(
   let { data: row, error } = await supabase
     .from("demo_submissions")
     .select("admin_id, researcher_submission_id, payload, owner_id, researcher_user_id")
-    .eq("admin_id", params.id)
+    .eq("admin_id", submissionId.value)
     .maybeSingle();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleServerError(error, { route: "/api/submissions/[id]/resolve" }, "Unable to resolve dispute.");
   }
 
   if (!row) {
@@ -63,7 +85,7 @@ export async function PATCH(
       userId: user.id,
       email: user.email ?? null,
       resourceType: "submission",
-      resourceId: params.id,
+      resourceId: submissionId.value,
       message: "Submission not found."
     });
   }
@@ -74,7 +96,7 @@ export async function PATCH(
       userId: user.id,
       email: user.email ?? null,
       resourceType: "submission",
-      resourceId: params.id,
+      resourceId: submissionId.value,
       message: "Submission not found."
     });
   }
@@ -90,7 +112,7 @@ export async function PATCH(
   }
 
   const finalPct =
-    body.resolution === "ACCEPT_CLAIM"
+    resolution.value === "ACCEPT_CLAIM"
       ? normalized.decision.disputeNote.desiredPct
       : normalized.decision.disputeNote.approvedPct;
   const payoutAmount = Math.round((normalized.adminSubmission.tierReward * finalPct) / 100);
@@ -103,7 +125,7 @@ export async function PATCH(
     );
 
     if (profileError) {
-      return NextResponse.json({ error: profileError.message }, { status: 500 });
+      return handleServerError(profileError, { route: "/api/submissions/[id]/resolve" }, "Unable to resolve dispute.");
     }
 
     payoutRecipient = researcherProfile?.wallet_address || undefined;
@@ -119,14 +141,20 @@ export async function PATCH(
     }
   }
 
-  const tx = await performTreasuryTransfer({
-    ownerId: row.owner_id || user.id,
-    bountySlug: normalized.researcherSubmission.bountySlug,
-    amount: payoutAmount,
-    type: "PAYOUT",
-    description: `Resolved dispute for ${normalized.adminSubmission.id} and released payout.`,
-    recipient: payoutRecipient
-  });
+  let tx;
+
+  try {
+    tx = await performTreasuryTransfer({
+      ownerId: row.owner_id || user.id,
+      bountySlug: normalized.researcherSubmission.bountySlug,
+      amount: payoutAmount,
+      type: "PAYOUT",
+      description: `Resolved dispute for ${normalized.adminSubmission.id} and released payout.`,
+      recipient: payoutRecipient
+    });
+  } catch (transferError) {
+    return handleServerError(transferError, { route: "/api/submissions/[id]/resolve" }, "Unable to resolve dispute.");
+  }
 
   const nextDecision: SubmissionDecision = {
     ...normalized.decision,
@@ -135,7 +163,7 @@ export async function PATCH(
     txHash: tx.txHash,
     disputeNote: {
       ...normalized.decision.disputeNote,
-      resolution: body.resolution
+      resolution: resolution.value
     }
   };
   const nextAdminSubmission = {
@@ -164,12 +192,12 @@ export async function PATCH(
       status: "PAID",
       payload: nextPayload
     })
-    .eq("admin_id", params.id)
+    .eq("admin_id", submissionId.value)
     .select("admin_id, researcher_submission_id, payload")
     .single();
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    return handleServerError(updateError, { route: "/api/submissions/[id]/resolve" }, "Unable to resolve dispute.");
   }
 
   try {
@@ -179,7 +207,7 @@ export async function PATCH(
       amount: -payoutAmount,
       type: "PAYOUT",
       description:
-        body.resolution === "ACCEPT_CLAIM"
+        resolution.value === "ACCEPT_CLAIM"
           ? `Accepted dispute claim and released ${finalPct}% payout for ${normalized.adminSubmission.id}.`
           : `Held original payout and released ${finalPct}% for ${normalized.adminSubmission.id}.`,
       txHash: tx.txHash
@@ -190,7 +218,7 @@ export async function PATCH(
       type: "PAYOUT",
       title: `Dispute resolved for ${normalized.adminSubmission.id}`,
       description:
-        body.resolution === "ACCEPT_CLAIM"
+        resolution.value === "ACCEPT_CLAIM"
           ? "Owner accepted the researcher claim and released the higher payout."
           : "Owner held the original percentage and released the approved payout.",
       actionLabel: "VIEW TREASURY ->",

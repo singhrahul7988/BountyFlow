@@ -9,6 +9,12 @@ import {
 } from "@/lib/server/auth-rate-limit";
 import { buildAuthErrorResponse } from "@/lib/server/auth-responses";
 import { isCaptchaConfigured, verifyCaptchaToken } from "@/lib/server/captcha";
+import {
+  parseJsonObjectBody,
+  readEnum,
+  readOptionalString,
+  readRequiredString
+} from "@/lib/server/request-validation";
 import { createClient } from "@/lib/supabase/server";
 
 type SignupBody = {
@@ -28,28 +34,60 @@ function getEmailRedirectTo(request: NextRequest, role: UserRole) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => null)) as SignupBody | null;
-  const name = body?.name?.trim() || "";
-  const email = body?.email?.trim().toLowerCase() || "";
-  const password = body?.password || "";
-  const walletAddress = body?.walletAddress?.trim() || "";
-  const role = body?.role === "owner" ? "owner" : "researcher";
+  const parsedBody = await parseJsonObjectBody(request, [
+    "name",
+    "email",
+    "password",
+    "walletAddress",
+    "role",
+    "captchaToken"
+  ]);
 
-  if (!name || !email || !password) {
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const name = readRequiredString(parsedBody.value, "name", { maxLength: 80 });
+  const email = readRequiredString(parsedBody.value, "email", {
+    maxLength: 320,
+    lowercase: true,
+    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  });
+  const password = readRequiredString(parsedBody.value, "password", { maxLength: 128 });
+  const walletAddress = readOptionalString(parsedBody.value, "walletAddress", { maxLength: 120 });
+  const role =
+    parsedBody.value.role === undefined
+      ? ({ ok: true, value: "researcher" as UserRole } as const)
+      : readEnum(parsedBody.value, "role", ["owner", "researcher"] as const);
+  const captchaToken = readOptionalString(parsedBody.value, "captchaToken", { maxLength: 4000 });
+
+  if (!name.ok || !email.ok || !password.ok) {
     return buildAuthErrorResponse("Name, email, and password are required.", 400, undefined, request.url);
   }
 
-  const passwordError = validatePasswordStrength(password);
+  if (!walletAddress.ok) {
+    return buildAuthErrorResponse("Wallet address is invalid.", 400, undefined, request.url);
+  }
+
+  if (!role.ok) {
+    return buildAuthErrorResponse("Selected account role is invalid.", 400, undefined, request.url);
+  }
+
+  if (!captchaToken.ok) {
+    return buildAuthErrorResponse("CAPTCHA verification failed.", 400, undefined, request.url);
+  }
+
+  const passwordError = validatePasswordStrength(password.value);
 
   if (passwordError) {
     return buildAuthErrorResponse(passwordError, 400, undefined, request.url);
   }
 
-  if (role === "owner" && !isAllowedOwnerEmail(email)) {
+  if (role.value === "owner" && !isAllowedOwnerEmail(email.value)) {
     return buildAuthErrorResponse("This email is not approved for project owner access.", 403, undefined, request.url);
   }
 
-  const rateLimit = getAuthRateLimitStatus(request, "signup", email);
+  const rateLimit = getAuthRateLimitStatus(request, "signup", email.value);
 
   if (rateLimit.locked) {
     return buildAuthErrorResponse(
@@ -60,7 +98,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const captchaResult = await verifyCaptchaToken(body?.captchaToken, request.headers.get("x-forwarded-for"));
+  const captchaResult = await verifyCaptchaToken(captchaToken.value, request.headers.get("x-forwarded-for"));
 
   if (!captchaResult.ok) {
     recordAuthFailure(rateLimit.key);
@@ -74,21 +112,21 @@ export async function POST(request: NextRequest) {
 
   const supabase = createClient();
   const { error } = await supabase.auth.signUp({
-    email,
-    password,
+    email: email.value,
+    password: password.value,
     options: {
-      emailRedirectTo: getEmailRedirectTo(request, role),
+      emailRedirectTo: getEmailRedirectTo(request, role.value),
       data: {
-        role,
-        name,
-        walletAddress
+        role: role.value,
+        name: name.value,
+        walletAddress: walletAddress.value || ""
       }
     }
   });
 
   if (error) {
     recordAuthFailure(rateLimit.key);
-    return buildAuthErrorResponse(error.message, 400, undefined, request.url);
+    return buildAuthErrorResponse("Unable to create the account.", 400, undefined, request.url);
   }
 
   clearAuthFailures(rateLimit.key);
@@ -96,6 +134,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    message: `Verification code sent to ${email}. Enter the OTP to verify your email.`
+    message: `Verification code sent to ${email.value}. Enter the OTP to verify your email.`
   });
 }

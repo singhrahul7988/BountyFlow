@@ -11,6 +11,7 @@ import type { AdminSubmission } from "@/lib/admin-submissions-data";
 import type { BountyDetail } from "@/lib/bounty-data";
 import type { ResearcherSubmission } from "@/lib/dashboard-data";
 import type { SubmissionDecision } from "@/lib/demo-types";
+import { handleServerError } from "@/lib/server/api-errors";
 import { requireApiRole } from "@/lib/server/authorization";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 
@@ -80,7 +81,7 @@ export async function GET() {
     notificationsResult.error;
 
   if (firstError) {
-    return NextResponse.json({ error: firstError.message }, { status: 500 });
+    return handleServerError(firstError, { route: "/api/demo-state" }, "Unable to load demo state.");
   }
 
   const bounties = (bountiesResult.data ?? [])

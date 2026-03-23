@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { getDefaultRouteForRole, type AuthUser, type UserRole } from "@/lib/auth";
+import {
+  getDefaultRouteForRole,
+  sanitizeNextPath,
+  type AuthUser,
+  type UserRole
+} from "@/lib/auth";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { useAppStore } from "@/lib/stores/app-store";
 import { TurnstileWidget } from "./turnstile-widget";
@@ -125,7 +130,7 @@ export function AuthPanel() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requiresCaptcha, setRequiresCaptcha] = useState(false);
 
-  const nextPath = searchParams.get("next");
+  const nextPath = sanitizeNextPath(searchParams.get("next"));
   const confirmed = searchParams.get("confirmed");
   const loggedOut = searchParams.get("logged_out");
 

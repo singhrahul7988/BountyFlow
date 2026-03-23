@@ -3,11 +3,19 @@ import { NextResponse } from "next/server";
 import { formatUtcTimestamp, normalizeStoredSubmission } from "@/lib/demo-persistence";
 import { createOwnerNotification } from "@/lib/onchain/service";
 import type { SubmissionDisputeNote } from "@/lib/demo-types";
+import { handleServerError } from "@/lib/server/api-errors";
 import {
   rejectMissingOwnedResource,
   rejectUnauthorizedResourceAccess,
   requireApiRole
 } from "@/lib/server/authorization";
+import {
+  parseJsonObjectBody,
+  readOptionalString,
+  readRequiredNumber,
+  readRequiredString,
+  validateIdentifier
+} from "@/lib/server/request-validation";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 
 export async function POST(
@@ -21,17 +29,39 @@ export async function POST(
     );
   }
 
-  const body = (await request.json().catch(() => null)) as {
-    reason?: string;
-    desiredPct?: number;
-    justification?: string;
-  } | null;
+  const submissionId = validateIdentifier(params.id, "id", {
+    maxLength: 40,
+    pattern: /^sub-[a-z0-9-]+$/
+  });
 
-  if (!body?.reason?.trim() || !body?.desiredPct) {
-    return NextResponse.json(
-      { error: "Dispute reason and desired payout percentage are required." },
-      { status: 400 }
-    );
+  if (!submissionId.ok) {
+    return submissionId.response;
+  }
+
+  const parsedBody = await parseJsonObjectBody(request, ["reason", "desiredPct", "justification"]);
+
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const reason = readRequiredString(parsedBody.value, "reason", { maxLength: 500 });
+  const desiredPct = readRequiredNumber(parsedBody.value, "desiredPct", {
+    integer: true,
+    min: 1,
+    max: 100
+  });
+  const justification = readOptionalString(parsedBody.value, "justification", { maxLength: 1500 });
+
+  if (!reason.ok) {
+    return reason.response;
+  }
+
+  if (!desiredPct.ok) {
+    return desiredPct.response;
+  }
+
+  if (!justification.ok) {
+    return justification.response;
   }
 
   const auth = await requireApiRole({
@@ -48,11 +78,11 @@ export async function POST(
   let { data: row, error } = await supabase
     .from("demo_submissions")
     .select("admin_id, researcher_submission_id, payload, researcher_user_id, owner_id")
-    .eq("researcher_submission_id", params.id)
+    .eq("researcher_submission_id", submissionId.value)
     .maybeSingle();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleServerError(error, { route: "/api/submissions/[id]/dispute" }, "Unable to open dispute.");
   }
 
   if (!row) {
@@ -61,7 +91,7 @@ export async function POST(
       userId: user.id,
       email: user.email ?? null,
       resourceType: "submission",
-      resourceId: params.id,
+      resourceId: submissionId.value,
       message: "Submission not found."
     });
   }
@@ -72,7 +102,7 @@ export async function POST(
       userId: user.id,
       email: user.email ?? null,
       resourceType: "submission",
-      resourceId: params.id,
+      resourceId: submissionId.value,
       message: "This submission belongs to another researcher."
     });
   }
@@ -93,10 +123,10 @@ export async function POST(
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
   const disputeNote: SubmissionDisputeNote = {
-    reason: body.reason.trim(),
-    desiredPct: body.desiredPct,
+    reason: reason.value,
+    desiredPct: desiredPct.value,
     approvedPct: normalized.decision.payoutPct,
-    justification: body.justification?.trim() || undefined,
+    justification: justification.value,
     openedAt: formatUtcTimestamp(now.toISOString()),
     expiresAt: formatUtcTimestamp(expiresAt.toISOString())
   };
@@ -130,12 +160,12 @@ export async function POST(
       status: "DISPUTE OPEN",
       payload: nextPayload
     })
-    .eq("researcher_submission_id", params.id)
+    .eq("researcher_submission_id", submissionId.value)
     .select("admin_id, researcher_submission_id, payload")
     .single();
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    return handleServerError(updateError, { route: "/api/submissions/[id]/dispute" }, "Unable to open dispute.");
   }
 
   if (row.owner_id) {

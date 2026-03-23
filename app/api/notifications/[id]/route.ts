@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 
+import { handleServerError } from "@/lib/server/api-errors";
 import {
   rejectMissingOwnedResource,
   requireApiRole
 } from "@/lib/server/authorization";
+import {
+  parseJsonObjectBody,
+  readBoolean,
+  validateIdentifier
+} from "@/lib/server/request-validation";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 
 async function assertOwner() {
@@ -25,22 +31,42 @@ export async function PATCH(
     );
   }
 
+  const notificationId = validateIdentifier(params.id, "id", {
+    maxLength: 80,
+    pattern: /^[A-Za-z0-9._:-]+$/
+  });
+
+  if (!notificationId.ok) {
+    return notificationId.response;
+  }
+
   const { supabase, user, error } = await assertOwner();
 
   if (error || !user) {
     return error;
   }
 
-  const body = (await request.json().catch(() => null)) as { unread?: boolean } | null;
+  const parsedBody = await parseJsonObjectBody(request, ["unread"]);
+
+  if (!parsedBody.ok) {
+    return parsedBody.response;
+  }
+
+  const unread = readBoolean(parsedBody.value, "unread");
+
+  if (!unread.ok) {
+    return unread.response;
+  }
+
   const { data: existingNotification, error: loadError } = await supabase
     .from("demo_notifications")
     .select("id")
-    .eq("id", params.id)
+    .eq("id", notificationId.value)
     .eq("owner_id", user.id)
     .maybeSingle();
 
   if (loadError) {
-    return NextResponse.json({ error: loadError.message }, { status: 500 });
+    return handleServerError(loadError, { route: "/api/notifications/[id]" }, "Unable to update notification.");
   }
 
   if (!existingNotification) {
@@ -49,19 +75,19 @@ export async function PATCH(
       userId: user.id,
       email: user.email ?? null,
       resourceType: "notification",
-      resourceId: params.id,
+      resourceId: notificationId.value,
       message: "Notification not found."
     });
   }
 
   const { error: updateError } = await supabase
     .from("demo_notifications")
-    .update({ unread: body?.unread ?? false })
-    .eq("id", params.id)
+    .update({ unread: unread.value })
+    .eq("id", notificationId.value)
     .eq("owner_id", user.id);
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    return handleServerError(updateError, { route: "/api/notifications/[id]" }, "Unable to update notification.");
   }
 
   return NextResponse.json({ ok: true });
@@ -78,6 +104,15 @@ export async function DELETE(
     );
   }
 
+  const notificationId = validateIdentifier(params.id, "id", {
+    maxLength: 80,
+    pattern: /^[A-Za-z0-9._:-]+$/
+  });
+
+  if (!notificationId.ok) {
+    return notificationId.response;
+  }
+
   const { supabase, user, error } = await assertOwner();
 
   if (error || !user) {
@@ -87,12 +122,12 @@ export async function DELETE(
   const { data: existingNotification, error: loadError } = await supabase
     .from("demo_notifications")
     .select("id")
-    .eq("id", params.id)
+    .eq("id", notificationId.value)
     .eq("owner_id", user.id)
     .maybeSingle();
 
   if (loadError) {
-    return NextResponse.json({ error: loadError.message }, { status: 500 });
+    return handleServerError(loadError, { route: "/api/notifications/[id]" }, "Unable to delete notification.");
   }
 
   if (!existingNotification) {
@@ -101,7 +136,7 @@ export async function DELETE(
       userId: user.id,
       email: user.email ?? null,
       resourceType: "notification",
-      resourceId: params.id,
+      resourceId: notificationId.value,
       message: "Notification not found."
     });
   }
@@ -109,11 +144,11 @@ export async function DELETE(
   const { error: deleteError } = await supabase
     .from("demo_notifications")
     .delete()
-    .eq("id", params.id)
+    .eq("id", notificationId.value)
     .eq("owner_id", user.id);
 
   if (deleteError) {
-    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    return handleServerError(deleteError, { route: "/api/notifications/[id]" }, "Unable to delete notification.");
   }
 
   return NextResponse.json({ ok: true });
