@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { createClient } from "@/lib/supabase/client";
-import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { signOutBrowserSession } from "@/lib/supabase/browser-sign-out";
 import { useAppStore } from "@/lib/stores/app-store";
 import { WalletLinkButton } from "../wallet/wallet-link-button";
@@ -13,7 +11,6 @@ import { Logo } from "./logo";
 export function Navbar() {
   const [isCompressed, setIsCompressed] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [supabase] = useState(() => (hasSupabaseEnv() ? createClient() : null));
   const {
     isMobileNavOpen,
     currentUser,
@@ -47,7 +44,7 @@ export function Navbar() {
     setIsLoggingOut(true);
     signOut();
     closeMobileNav();
-    await signOutBrowserSession(supabase);
+    await signOutBrowserSession();
     setIsLoggingOut(false);
   }
 

@@ -12,8 +12,6 @@ import {
 } from "@/lib/dashboard-data";
 import { leaderboardRows } from "@/lib/mock-data";
 import { signOutBrowserSession } from "@/lib/supabase/browser-sign-out";
-import { createClient } from "@/lib/supabase/client";
-import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { useAppStore } from "@/lib/stores/app-store";
 import { cn, formatCurrency, truncateAddress } from "@/lib/utils";
 import { Logo } from "../home/logo";
@@ -271,7 +269,6 @@ export function ResearcherDashboard({
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [lastKnownName, setLastKnownName] = useState("");
-  const [supabase] = useState(() => (hasSupabaseEnv() ? createClient() : null));
   const { currentUser, hasHydrated, signOut } = useAppStore();
 
   useEffect(() => {
@@ -429,7 +426,7 @@ export function ResearcherDashboard({
 
     setIsLoggingOut(true);
     signOut();
-    await signOutBrowserSession(supabase);
+    await signOutBrowserSession();
     setIsLoggingOut(false);
   }
 
@@ -736,14 +733,6 @@ export function ResearcherDashboard({
               </table>
             </div>
 
-            <div className="flex justify-end">
-              <Link
-                href="/dashboard/bounties"
-                className="bf-button-primary justify-center whitespace-nowrap px-3 py-1.5 text-[0.48rem]"
-              >
-                SUBMIT BUG
-              </Link>
-            </div>
           </div>
         </DashboardPanel>
 

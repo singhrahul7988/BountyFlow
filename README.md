@@ -43,6 +43,18 @@ npm run dev
 - Owner routes are protected.
 - Owner access is restricted by `OWNER_ALLOWED_EMAILS`.
 - Signup requires email confirmation once, then users log in manually with email and password.
+- Login, signup, logout, email verification, and password reset are handled through server routes.
+- Session activity is tracked server-side with an absolute lifetime and idle timeout.
+- Password reset confirmation is limited to a 15 minute in-app reset window.
+- Cloudflare Turnstile can be enabled with `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`.
+
+## Production Auth Checklist
+
+1. In Supabase Auth, keep `Confirm email` enabled.
+2. Set the email OTP / recovery token expiry to `900` seconds if you want dashboard-side password reset expiry to match the in-app 15 minute window exactly.
+3. Use custom SMTP before production.
+4. Configure Cloudflare Turnstile and set the Turnstile env vars for login/signup/reset CAPTCHA protection.
+5. Serve the app only over HTTPS in production.
 
 ## Current Routes
 

@@ -8,6 +8,13 @@ import {
   type UserRole
 } from "@/lib/auth";
 import { logUnauthorizedAccessAttempt } from "@/lib/server/authorization";
+import {
+  applySessionTrackingCookies,
+  clearSessionTrackingCookies,
+  clearSupabaseAuthCookies,
+  getSessionWindowState,
+  refreshSessionActivityCookie
+} from "@/lib/server/auth-session";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { updateSession } from "@/lib/supabase/middleware";
 import { getProfileByUserId } from "@/lib/supabase/profiles";
@@ -38,6 +45,35 @@ function buildApiError(
   return NextResponse.json({ error: message }, { status });
 }
 
+function buildSessionExpiredResponse(request: NextRequest, isApiRoute: boolean, reason: string) {
+  logUnauthorizedAccessAttempt({
+    route: request.nextUrl.pathname,
+    reason,
+    status: 401
+  });
+
+  const message =
+    reason === "email_not_confirmed"
+      ? "Verify your email before signing in."
+      : "Session expired. Sign in again.";
+
+  const response = isApiRoute
+    ? NextResponse.json({ error: message }, { status: 401 })
+    : (() => {
+        const redirectTarget = new URL("/auth", request.url);
+        redirectTarget.searchParams.set(
+          "reason",
+          reason === "email_not_confirmed" ? "email_unverified" : "session_expired"
+        );
+        redirectTarget.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
+        return NextResponse.redirect(redirectTarget);
+      })();
+
+  clearSessionTrackingCookies(response, request.url);
+  clearSupabaseAuthCookies(response, request);
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const confirmed = request.nextUrl.searchParams.get("confirmed");
@@ -50,6 +86,7 @@ export async function middleware(request: NextRequest) {
   const { profile } = user ? await getProfileByUserId(supabase, user.id) : { profile: null };
   const role = getRoleFromProfile(profile);
   const isApiRoute = pathname.startsWith("/api/");
+  const sessionState = user ? getSessionWindowState(request.cookies) : null;
 
   const isResearcherRoute =
     pathname.startsWith("/dashboard") ||
@@ -67,6 +104,30 @@ export async function middleware(request: NextRequest) {
     pathname.endsWith("/dispute");
   const isAuthenticatedApiRoute =
     pathname === "/api/demo-state" || pathname === "/api/profile/wallet";
+
+  if (user && !user.email_confirmed_at && pathname !== "/auth" && pathname !== "/auth/confirmed") {
+    try {
+      await supabase.auth.signOut({ scope: "global" });
+    } catch {
+      await supabase.auth.signOut();
+    }
+
+    return buildSessionExpiredResponse(request, isApiRoute, "email_not_confirmed");
+  }
+
+  if (user && sessionState?.expired) {
+    try {
+      await supabase.auth.signOut({ scope: "global" });
+    } catch {
+      await supabase.auth.signOut();
+    }
+
+    return buildSessionExpiredResponse(
+      request,
+      isApiRoute,
+      sessionState.idleExpired ? "session_idle_timeout" : "session_max_age_exceeded"
+    );
+  }
 
   if (isApiRoute) {
     if (isOwnerApiRoute) {
@@ -121,6 +182,14 @@ export async function middleware(request: NextRequest) {
 
     if (role !== "owner" || !isAllowedOwnerEmail(user.email || "")) {
       return buildAuthRedirect(request, role, "role");
+    }
+  }
+
+  if (user && role) {
+    if (sessionState?.missingTracking) {
+      applySessionTrackingCookies(response, request.url);
+    } else {
+      refreshSessionActivityCookie(response, request.url);
     }
   }
 

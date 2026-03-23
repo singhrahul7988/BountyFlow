@@ -4,14 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/client";
-import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { useAppStore } from "@/lib/stores/app-store";
 
 export function AuthConfirmationBridge() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [supabase] = useState(() => (hasSupabaseEnv() ? createClient() : null));
   const [status, setStatus] = useState<"processing" | "done" | "error">("processing");
   const [message, setMessage] = useState("Finalizing email confirmation...");
   const { signOut } = useAppStore();
@@ -38,21 +35,17 @@ export function AuthConfirmationBridge() {
     let isMounted = true;
 
     async function finalizeConfirmation() {
-      if (!supabase) {
-        if (!isMounted) {
-          return;
-        }
-
-        setStatus("done");
-        setMessage("Email confirmed. Continue to login.");
-        router.replace(targetHref);
-        return;
-      }
-
       try {
-        await supabase.auth.getSession();
-        await supabase.auth.signOut();
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          credentials: "include",
+          cache: "no-store"
+        });
         signOut();
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("bf-auth-refresh"));
+        }
 
         if (!isMounted) {
           return;
@@ -76,7 +69,7 @@ export function AuthConfirmationBridge() {
     return () => {
       isMounted = false;
     };
-  }, [router, signOut, supabase, targetHref]);
+  }, [router, signOut, targetHref]);
 
   return (
     <section className="bf-shell pt-32 pb-24">

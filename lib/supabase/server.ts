@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+import { normalizeSupabaseCookieOptions } from "@/lib/server/auth-session";
 import { getSupabasePublishableKey, getSupabaseUrl } from "./config";
 
 export function createClient() {
@@ -14,7 +15,7 @@ export function createClient() {
       setAll(cookiesToSet) {
         try {
           cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
+            cookieStore.set(name, value, normalizeSupabaseCookieOptions(options));
           });
         } catch {
           // Server Components cannot always write cookies during render.

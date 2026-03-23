@@ -4,14 +4,11 @@ import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 
-import { createClient } from "@/lib/supabase/client";
-import { hasSupabaseEnv } from "@/lib/supabase/config";
-import { getAuthUserFromProfile } from "@/lib/supabase/profiles";
+import type { AuthUser } from "@/lib/auth";
 import { useAppStore } from "@/lib/stores/app-store";
 import { wagmiConfig } from "@/lib/web3/wagmi-config";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
-  const [supabase] = useState(() => (hasSupabaseEnv() ? createClient() : null));
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -27,46 +24,67 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   const { signIn, signOut, setHydrated } = useAppStore();
 
   useEffect(() => {
-    if (!supabase) {
-      setHydrated(true);
-      return;
-    }
-
     let isMounted = true;
 
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!isMounted) {
-        return;
+    async function syncCurrentUser() {
+      const response = await fetch("/api/auth/me", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to restore the current session.");
       }
 
-      const mapped = await getAuthUserFromProfile(supabase, data.user);
+      return (await response.json()) as { user: AuthUser | null };
+    }
 
-      if (mapped) {
-        signIn(mapped);
-      } else {
+    async function hydrate() {
+      try {
+        const data = await syncCurrentUser();
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (data.user) {
+          signIn(data.user);
+        } else {
+          signOut();
+        }
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+
         signOut();
+      } finally {
+        if (isMounted) {
+          setHydrated(true);
+        }
       }
+    }
 
-      setHydrated(true);
-    });
+    void hydrate();
 
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const mapped = await getAuthUserFromProfile(supabase, session?.user);
+    function handleAuthRefresh() {
+      void hydrate();
+    }
 
-      if (mapped) {
-        signIn(mapped);
-      } else {
-        signOut();
-      }
-    });
+    function handleFocus() {
+      void hydrate();
+    }
+
+    window.addEventListener("bf-auth-refresh", handleAuthRefresh);
+    window.addEventListener("focus", handleFocus);
 
     return () => {
       isMounted = false;
-      subscription.unsubscribe();
+      window.removeEventListener("bf-auth-refresh", handleAuthRefresh);
+      window.removeEventListener("focus", handleFocus);
     };
-  }, [setHydrated, signIn, signOut, supabase]);
+  }, [setHydrated, signIn, signOut]);
 
   return (
     <WagmiProvider config={wagmiConfig}>

@@ -1,5 +1,3 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-
 function clearStorage(store: Storage) {
   const keysToRemove: string[] = [];
 
@@ -10,10 +8,7 @@ function clearStorage(store: Storage) {
       continue;
     }
 
-    if (
-      key === "supabase.auth.token" ||
-      (key.startsWith("sb-") && key.includes("auth-token"))
-    ) {
+    if (key === "supabase.auth.token" || (key.startsWith("sb-") && key.includes("auth-token"))) {
       keysToRemove.push(key);
     }
   }
@@ -30,16 +25,21 @@ function clearSupabaseBrowserState() {
   clearStorage(window.sessionStorage);
 }
 
-export async function signOutBrowserSession(supabase: SupabaseClient | null) {
+export async function signOutBrowserSession() {
   try {
-    await supabase?.auth.signOut({ scope: "global" });
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store"
+    });
   } catch {
-    await supabase?.auth.signOut();
+    // Keep local cleanup and redirect behavior even if the network request fails.
   }
 
   clearSupabaseBrowserState();
 
   if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("bf-auth-refresh"));
     window.location.replace("/auth?logged_out=1");
   }
 }

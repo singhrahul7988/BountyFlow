@@ -1,18 +1,13 @@
 "use client";
 
-import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import {
-  getDefaultRouteForRole,
-  type UserRole
-} from "@/lib/auth";
-import { createClient } from "@/lib/supabase/client";
+import { getDefaultRouteForRole, type AuthUser, type UserRole } from "@/lib/auth";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
-import { getAuthUserFromProfile } from "@/lib/supabase/profiles";
 import { useAppStore } from "@/lib/stores/app-store";
+import { TurnstileWidget } from "./turnstile-widget";
 
 const authModes = ["LOGIN", "SIGN UP"] as const;
 const roles: { label: string; value: UserRole; body: string }[] = [
@@ -28,7 +23,17 @@ const roles: { label: string; value: UserRole; body: string }[] = [
   }
 ];
 
-const AUTH_TIMEOUT_MS = 15000;
+const AUTH_TIMEOUT_MS = 15_000;
+const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
+
+type AuthApiResponse = {
+  error?: string;
+  message?: string;
+  user?: AuthUser | null;
+  nextPath?: string;
+  requiresCaptcha?: boolean;
+  retryAfterMs?: number;
+};
 
 async function withTimeout<T>(promise: Promise<T>, message: string, timeoutMs = AUTH_TIMEOUT_MS) {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -50,10 +55,14 @@ function formatAuthErrorMessage(message: string) {
   const normalized = message.toLowerCase();
 
   if (
-    normalized.includes("password should be at least 6 characters") ||
-    normalized.includes("password should contain at least one character of each")
+    normalized.includes("password must be at least 8 characters") ||
+    normalized.includes("uppercase, lowercase, and numeric")
   ) {
-    return "Password must be at least 6 characters and include a number.";
+    return "Password must be at least 8 characters and include uppercase, lowercase, and a number.";
+  }
+
+  if (normalized.includes("invalid email or password")) {
+    return "Invalid email or password.";
   }
 
   if (normalized.includes("email address not authorized")) {
@@ -68,36 +77,57 @@ function formatAuthErrorMessage(message: string) {
     return "Email sending is rate-limited in Supabase right now. Wait a bit or configure custom SMTP.";
   }
 
-  if (normalized.includes("otp")) {
-    return `OTP delivery failed. ${message}`;
-  }
-
   return message;
+}
+
+async function postJson<T>(url: string, body: Record<string, unknown>) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
+    cache: "no-store",
+    body: JSON.stringify(body)
+  });
+
+  const payload = (await response.json().catch(() => ({}))) as T;
+  return { response, payload };
+}
+
+function dispatchAuthRefresh() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("bf-auth-refresh"));
+  }
 }
 
 export function AuthPanel() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { currentUser, hasHydrated, signIn, signOut } = useAppStore();
-  const [supabase] = useState(() => (hasSupabaseEnv() ? createClient() : null));
   const [mode, setMode] = useState<(typeof authModes)[number]>("LOGIN");
-  const [otpStep, setOtpStep] = useState<"request" | "verify">("request");
   const [role, setRole] = useState<UserRole>(
     searchParams.get("role") === "owner" ? "owner" : "researcher"
   );
+  const [resetMode, setResetMode] = useState(false);
+  const [resetStep, setResetStep] = useState<"request" | "confirm">("request");
+  const [otpStep, setOtpStep] = useState<"request" | "verify">("request");
   const [formState, setFormState] = useState({
     name: "",
     email: "",
     password: "",
     otpCode: "",
-    walletAddress: ""
+    walletAddress: "",
+    captchaToken: ""
   });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requiresCaptcha, setRequiresCaptcha] = useState(false);
 
   const nextPath = searchParams.get("next");
   const confirmed = searchParams.get("confirmed");
+  const loggedOut = searchParams.get("logged_out");
 
   useEffect(() => {
     if (!hasHydrated || !currentUser || confirmed === "1") {
@@ -109,8 +139,21 @@ export function AuthPanel() {
 
   const helperCopy = useMemo(() => {
     const reason = searchParams.get("reason");
+
     if (confirmed === "1") {
       return "Email confirmed. Sign in with your email and password to continue.";
+    }
+
+    if (loggedOut === "1") {
+      return "Signed out successfully.";
+    }
+
+    if (reason === "session_expired") {
+      return "Your session expired. Sign in again to continue.";
+    }
+
+    if (reason === "email_unverified") {
+      return "Verify your email before accessing protected routes.";
     }
 
     if (reason === "role") {
@@ -122,24 +165,7 @@ export function AuthPanel() {
     }
 
     return "Authenticate with the role that matches the area of the platform you need to access.";
-  }, [searchParams]);
-
-  async function verifyOwnerAccess(email: string) {
-    const response = await fetch("/api/auth/owner-access", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ email })
-    });
-
-    if (!response.ok) {
-      throw new Error("Unable to verify owner access right now.");
-    }
-
-    const data = (await response.json()) as { allowed?: boolean };
-    return Boolean(data.allowed);
-  }
+  }, [confirmed, loggedOut, searchParams]);
 
   function updateField(key: keyof typeof formState, value: string) {
     setFormState((current) => ({ ...current, [key]: value }));
@@ -147,61 +173,98 @@ export function AuthPanel() {
     setNotice("");
   }
 
-  useEffect(() => {
-    setOtpStep("request");
-    setFormState((current) => ({ ...current, otpCode: "" }));
+  function resetTransientState() {
     setError("");
     setNotice("");
-  }, [mode, role]);
+    setRequiresCaptcha(false);
+    setFormState((current) => ({ ...current, otpCode: "", captchaToken: "" }));
+  }
 
-  async function finalizeAuthenticatedUser(user: User | null) {
-    if (!supabase) {
-      return;
-    }
+  useEffect(() => {
+    setOtpStep("request");
+    setResetStep("request");
+    resetTransientState();
+  }, [mode, role, resetMode]);
 
-    const mapped = await withTimeout(
-      getAuthUserFromProfile(supabase, user),
-      "Profile lookup timed out after OTP verification. Try again."
-    );
-
-    if (!mapped) {
-      setError("Your account is missing a BountyFlow profile. Run the Supabase profile SQL setup first.");
-      await supabase.auth.signOut();
-      signOut();
-      return;
-    }
-
-    if (mapped.role !== role) {
-      setError(`This account is registered as ${mapped.role}, not ${role}.`);
-      await supabase.auth.signOut();
-      signOut();
-      return;
-    }
-
-    signIn(mapped);
-    router.push(nextPath || getDefaultRouteForRole(mapped.role));
+  async function finalizeSignedInUser(user: AuthUser, next?: string) {
+    signIn(user);
+    dispatchAuthRefresh();
+    router.push(next || nextPath || getDefaultRouteForRole(user.role));
     router.refresh();
   }
 
-  async function completeSignupVerification(user: User | null) {
-    if (!supabase) {
+  async function handleLogin() {
+    if (!formState.email.trim() || !formState.password.trim()) {
+      setError("Email and password are required.");
       return;
     }
 
-    const mapped = await withTimeout(
-      getAuthUserFromProfile(supabase, user),
-      "Profile lookup timed out after verification. Try signing in."
+    const { response, payload } = await withTimeout(
+      postJson<AuthApiResponse>("/api/auth/login", {
+        email: formState.email.trim(),
+        password: formState.password,
+        role,
+        captchaToken: formState.captchaToken
+      }),
+      "Sign in timed out. Check your connection and try again."
     );
 
-    if (!mapped) {
-      setError("Email verified, but the BountyFlow profile is missing. Check the Supabase profile trigger.");
-      await supabase.auth.signOut();
-      signOut();
+    setRequiresCaptcha(Boolean(payload.requiresCaptcha));
+
+    if (!response.ok || !payload.user) {
+      setError(formatAuthErrorMessage(payload.error || "Sign in failed."));
       return;
     }
 
-    await supabase.auth.signOut();
+    await finalizeSignedInUser(payload.user, payload.nextPath);
+  }
+
+  async function handleSignupRequest() {
+    if (!formState.name.trim() || !formState.email.trim() || !formState.password.trim()) {
+      setError("Name, email, and password are required.");
+      return;
+    }
+
+    const { response, payload } = await withTimeout(
+      postJson<AuthApiResponse>("/api/auth/signup", {
+        name: formState.name.trim(),
+        email: formState.email.trim(),
+        password: formState.password,
+        walletAddress: formState.walletAddress.trim(),
+        role,
+        captchaToken: formState.captchaToken
+      }),
+      "Sign up timed out. Check your connection and try again."
+    );
+
+    setRequiresCaptcha(Boolean(payload.requiresCaptcha));
+
+    if (!response.ok) {
+      setError(formatAuthErrorMessage(payload.error || "Sign up failed."));
+      return;
+    }
+
+    setOtpStep("verify");
+    setNotice(payload.message || `Verification code sent to ${formState.email.trim()}.`);
+  }
+
+  async function handleSignupVerify() {
+    const { response, payload } = await withTimeout(
+      postJson<AuthApiResponse>("/api/auth/verify-email", {
+        email: formState.email.trim(),
+        otpCode: formState.otpCode.trim(),
+        role
+      }),
+      "OTP verification timed out while verifying your email."
+    );
+
+    if (!response.ok) {
+      setError(formatAuthErrorMessage(payload.error || "OTP verification failed."));
+      return;
+    }
+
     signOut();
+    dispatchAuthRefresh();
     setMode("LOGIN");
     setOtpStep("request");
     setFormState({
@@ -209,31 +272,73 @@ export function AuthPanel() {
       email: "",
       password: "",
       otpCode: "",
-      walletAddress: ""
+      walletAddress: "",
+      captchaToken: ""
     });
-    setNotice("Email verified. You can now sign in with your email and password.");
+    setNotice(payload.message || "Email verified. You can now sign in.");
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!supabase) {
-      setError("Supabase environment variables are not configured yet.");
-      return;
-    }
-
+  async function handleResetRequest() {
     if (!formState.email.trim()) {
       setError("Email is required.");
       return;
     }
 
-    if (otpStep === "request" && mode === "SIGN UP" && !formState.name.trim()) {
-      setError("Name is required for sign up.");
+    const { response, payload } = await withTimeout(
+      postJson<AuthApiResponse>("/api/auth/password-reset/request", {
+        email: formState.email.trim(),
+        captchaToken: formState.captchaToken
+      }),
+      "Password reset request timed out. Try again."
+    );
+
+    setRequiresCaptcha(Boolean(payload.requiresCaptcha));
+
+    if (!response.ok) {
+      setError(formatAuthErrorMessage(payload.error || "Password reset request failed."));
       return;
     }
 
-    if (otpStep === "verify" && !formState.otpCode.trim()) {
-      setError("Enter the OTP sent to your email.");
+    setResetStep("confirm");
+    setNotice(payload.message || `Reset code sent to ${formState.email.trim()}.`);
+  }
+
+  async function handleResetConfirm() {
+    if (!formState.email.trim() || !formState.otpCode.trim() || !formState.password.trim()) {
+      setError("Email, reset code, and new password are required.");
+      return;
+    }
+
+    const { response, payload } = await withTimeout(
+      postJson<AuthApiResponse>("/api/auth/password-reset/confirm", {
+        email: formState.email.trim(),
+        otpCode: formState.otpCode.trim(),
+        newPassword: formState.password
+      }),
+      "Password reset confirmation timed out. Try again."
+    );
+
+    if (!response.ok) {
+      setError(formatAuthErrorMessage(payload.error || "Password reset failed."));
+      return;
+    }
+
+    setResetMode(false);
+    setResetStep("request");
+    setFormState((current) => ({
+      ...current,
+      password: "",
+      otpCode: "",
+      captchaToken: ""
+    }));
+    setNotice(payload.message || "Password updated. Sign in with your new password.");
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!hasSupabaseEnv()) {
+      setError("Supabase environment variables are not configured yet.");
       return;
     }
 
@@ -242,99 +347,25 @@ export function AuthPanel() {
     setNotice("");
 
     try {
-    if (!formState.email.trim()) {
-      setError("Email is required.");
-      return;
-    }
-
-    if (mode === "LOGIN" && !formState.password.trim()) {
-      setError("Password is required.");
-      return;
-    }
-
-    if (otpStep === "request" && mode === "SIGN UP" && !formState.name.trim()) {
-      setError("Name is required for sign up.");
-      return;
-    }
-
-    if (otpStep === "request" && mode === "SIGN UP" && !formState.password.trim()) {
-      setError("Password is required for sign up.");
-      return;
-    }
-
-    if (otpStep === "request" && role === "owner" && mode === "SIGN UP") {
-        const isAllowed = await withTimeout(
-          verifyOwnerAccess(formState.email.trim()),
-          "Owner access verification timed out. Try again."
-        );
-
-        if (!isAllowed) {
-          setError("This email is not approved for project owner access.");
-          return;
+      if (resetMode) {
+        if (resetStep === "request") {
+          await handleResetRequest();
+        } else {
+          await handleResetConfirm();
         }
-      }
-
-      if (mode === "SIGN UP" && otpStep === "request") {
-        const { error: signUpError } = await withTimeout(
-          supabase.auth.signUp({
-            email: formState.email.trim(),
-            password: formState.password,
-            options: {
-              data: {
-                role,
-                name: formState.name.trim(),
-                walletAddress: formState.walletAddress.trim()
-              }
-            }
-          }),
-          "Sign up timed out. Check your connection and try again."
-        );
-
-        if (signUpError) {
-          setError(formatAuthErrorMessage(signUpError.message));
-          return;
-        }
-
-        setOtpStep("verify");
-        setNotice(
-          `Verification code sent to ${formState.email.trim()}. Enter the OTP to verify your email.`
-        );
         return;
       }
 
-      if (mode === "SIGN UP" && otpStep === "verify") {
-        const { data, error: verifyError } = await withTimeout(
-          supabase.auth.verifyOtp({
-            email: formState.email.trim(),
-            token: formState.otpCode.trim(),
-            type: "email"
-          }),
-          "OTP verification timed out while verifying your email."
-        );
-
-        if (verifyError) {
-          setError(verifyError.message);
-          return;
+      if (mode === "SIGN UP") {
+        if (otpStep === "request") {
+          await handleSignupRequest();
+        } else {
+          await handleSignupVerify();
         }
-
-        await completeSignupVerification(data.user);
         return;
       }
 
-      const { data, error: signInError } = await withTimeout(
-        supabase.auth.signInWithPassword({
-          email: formState.email.trim(),
-          password: formState.password
-        }),
-        "Sign in timed out. Check your connection and try again."
-      );
-
-      if (signInError) {
-        setError(formatAuthErrorMessage(signInError.message));
-        return;
-      }
-
-      await finalizeAuthenticatedUser(data.user);
+      await handleLogin();
     } catch (submissionError) {
       setError(
         submissionError instanceof Error
@@ -346,172 +377,258 @@ export function AuthPanel() {
     }
   }
 
+  const showCaptcha = requiresCaptcha && Boolean(turnstileSiteKey);
+
   return (
     <section className="bf-shell pt-32 pb-24">
       <div className="mx-auto w-full max-w-[1420px]">
         <div className="grid gap-8 xl:grid-cols-[0.52fr_0.48fr]">
           <div className="space-y-6 bg-surface-low p-8 md:p-10">
-          <p className="bf-label text-primary">ROLE-BASED ACCESS</p>
-          <h1 className="bf-display text-[2.6rem] leading-none tracking-tightHeading sm:text-[4rem]">
-            SIGN IN TO
-            <span className="block">BOUNTYFLOW</span>
-          </h1>
-          <p className="max-w-2xl text-[1rem] leading-8 text-muted">{helperCopy}</p>
+            <p className="bf-label text-primary">ROLE-BASED ACCESS</p>
+            <h1 className="bf-display text-[2.6rem] leading-none tracking-tightHeading sm:text-[4rem]">
+              SIGN IN TO
+              <span className="block">BOUNTYFLOW</span>
+            </h1>
+            <p className="max-w-2xl text-[1rem] leading-8 text-muted">{helperCopy}</p>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            {roles.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setRole(item.value)}
-                className={`space-y-4 border p-5 text-left transition-colors duration-100 ease-linear ${
-                  role === item.value
-                    ? "border-primary bg-surface-high shadow-[0_0_0_1px_rgba(99,255,205,0.35)]"
-                    : "border-outline/12 bg-background hover:border-outline/25 hover:bg-surface-high"
-                }`}
-              >
-                <p className={`bf-label ${role === item.value ? "text-primary" : "text-muted"}`}>
-                  {item.label}
-                </p>
-                <p className="text-sm leading-7 text-muted">{item.body}</p>
-              </button>
-            ))}
+            <div className="grid gap-4 md:grid-cols-2">
+              {roles.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => setRole(item.value)}
+                  className={`space-y-4 border p-5 text-left transition-colors duration-100 ease-linear ${
+                    role === item.value
+                      ? "border-primary bg-surface-high shadow-[0_0_0_1px_rgba(99,255,205,0.35)]"
+                      : "border-outline/12 bg-background hover:border-outline/25 hover:bg-surface-high"
+                  }`}
+                >
+                  <p className={`bf-label ${role === item.value ? "text-primary" : "text-muted"}`}>
+                    {item.label}
+                  </p>
+                  <p className="text-sm leading-7 text-muted">{item.body}</p>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
           <div className="space-y-6 bg-surface-low p-8 md:p-10">
-          <div className="flex gap-6 border-b border-outline-variant/15 pb-3">
-            {authModes.map((item) => (
+            {!resetMode ? (
+              <div className="flex gap-6 border-b border-outline-variant/15 pb-3">
+                {authModes.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => {
+                      setMode(item);
+                      setResetMode(false);
+                      resetTransientState();
+                    }}
+                    className={`border-b-2 pb-3 font-mono text-[0.78rem] uppercase tracking-label transition-colors duration-100 ease-linear ${
+                      mode === item
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted hover:text-foreground"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="border-b border-outline-variant/15 pb-3">
+                <p className="font-mono text-[0.78rem] uppercase tracking-label text-primary">
+                  PASSWORD RESET
+                </p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {!resetMode && mode === "SIGN UP" && otpStep === "request" ? (
+                <label className="space-y-3">
+                  <span className="bf-label text-foreground">FULL NAME</span>
+                  <input
+                    value={formState.name}
+                    onChange={(event) => updateField("name", event.target.value)}
+                    className="bf-terminal-input"
+                    placeholder="Enter your full name"
+                  />
+                </label>
+              ) : null}
+
+              <label className="space-y-3">
+                <span className="bf-label text-foreground">EMAIL</span>
+                <input
+                  type="email"
+                  value={formState.email}
+                  onChange={(event) => updateField("email", event.target.value)}
+                  className="bf-terminal-input"
+                  placeholder="name@company.com"
+                />
+              </label>
+
+              {(!resetMode && mode === "LOGIN") ||
+              (!resetMode && mode === "SIGN UP" && otpStep === "request") ||
+              (resetMode && resetStep === "confirm") ? (
+                <label className="space-y-3">
+                  <span className="bf-label text-foreground">
+                    {resetMode ? "NEW PASSWORD" : "PASSWORD"}
+                  </span>
+                  <input
+                    type="password"
+                    value={formState.password}
+                    onChange={(event) => updateField("password", event.target.value)}
+                    className="bf-terminal-input"
+                    placeholder={resetMode ? "Choose a new password" : "Enter your password"}
+                  />
+                </label>
+              ) : null}
+
+              {!resetMode && mode === "SIGN UP" && otpStep === "request" ? (
+                <label className="space-y-3">
+                  <span className="bf-label text-foreground">WALLET ADDRESS (OPTIONAL)</span>
+                  <input
+                    value={formState.walletAddress}
+                    onChange={(event) => updateField("walletAddress", event.target.value)}
+                    className="bf-terminal-input"
+                    placeholder="0x..."
+                  />
+                </label>
+              ) : null}
+
+              {(!resetMode && otpStep === "verify") || (resetMode && resetStep === "confirm") ? (
+                <label className="space-y-3">
+                  <span className="bf-label text-foreground">
+                    {resetMode ? "RESET OTP" : "EMAIL OTP"}
+                  </span>
+                  <input
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={formState.otpCode}
+                    onChange={(event) => updateField("otpCode", event.target.value)}
+                    className="bf-terminal-input"
+                    placeholder="Enter the code from your email"
+                  />
+                </label>
+              ) : null}
+
+              {showCaptcha ? (
+                <div className="space-y-3">
+                  <span className="bf-label text-foreground">CAPTCHA VERIFICATION</span>
+                  <TurnstileWidget
+                    siteKey={turnstileSiteKey}
+                    onVerify={(token) => updateField("captchaToken", token)}
+                  />
+                </div>
+              ) : null}
+
+              {error ? <p className="text-sm text-error">{error}</p> : null}
+              {notice ? <p className="text-sm text-primary">{notice}</p> : null}
+
               <button
-                key={item}
-                type="button"
-                onClick={() => {
-                  setMode(item);
-                  setError("");
-                }}
-                className={`border-b-2 pb-3 font-mono text-[0.78rem] uppercase tracking-label transition-colors duration-100 ease-linear ${
-                  mode === item
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted hover:text-foreground"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {mode === "SIGN UP" && otpStep === "request" ? (
-              <label className="space-y-3">
-                <span className="bf-label text-foreground">FULL NAME</span>
-                <input
-                  value={formState.name}
-                  onChange={(event) => updateField("name", event.target.value)}
-                  className="bf-terminal-input"
-                  placeholder="Enter your full name"
-                />
-              </label>
-            ) : null}
-
-            <label className="space-y-3">
-              <span className="bf-label text-foreground">EMAIL</span>
-              <input
-                type="email"
-                value={formState.email}
-                onChange={(event) => updateField("email", event.target.value)}
-                className="bf-terminal-input"
-                placeholder="name@company.com"
-              />
-            </label>
-
-            {mode === "LOGIN" || (mode === "SIGN UP" && otpStep === "request") ? (
-              <label className="space-y-3">
-                <span className="bf-label text-foreground">PASSWORD</span>
-                <input
-                  type="password"
-                  value={formState.password}
-                  onChange={(event) => updateField("password", event.target.value)}
-                  className="bf-terminal-input"
-                  placeholder="Enter your password"
-                />
-              </label>
-            ) : null}
-
-            {mode === "SIGN UP" && otpStep === "request" ? (
-              <label className="space-y-3">
-                <span className="bf-label text-foreground">WALLET ADDRESS (OPTIONAL)</span>
-                <input
-                  value={formState.walletAddress}
-                  onChange={(event) => updateField("walletAddress", event.target.value)}
-                  className="bf-terminal-input"
-                  placeholder="0x..."
-                />
-              </label>
-            ) : null}
-
-            {otpStep === "verify" ? (
-              <label className="space-y-3">
-                <span className="bf-label text-foreground">EMAIL OTP</span>
-                <input
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  value={formState.otpCode}
-                  onChange={(event) => updateField("otpCode", event.target.value)}
-                  className="bf-terminal-input"
-                  placeholder="Enter the code from your email"
-                />
-              </label>
-            ) : null}
-
-            {error ? <p className="text-sm text-error">{error}</p> : null}
-            {notice ? <p className="text-sm text-primary">{notice}</p> : null}
-
-            <button type="submit" disabled={isSubmitting} className="bf-button-primary w-full justify-center">
-              {isSubmitting
-                ? mode === "SIGN UP"
-                  ? otpStep === "verify"
-                    ? "VERIFYING OTP..."
-                    : "SIGNING UP..."
-                  : "SIGNING IN..."
-                : mode === "SIGN UP"
-                  ? otpStep === "verify"
-                    ? "VERIFY OTP"
-                    : "CREATE ACCOUNT"
-                  : "SIGN IN"}
-            </button>
-
-            {mode === "SIGN UP" && otpStep === "verify" ? (
-              <button
-                type="button"
+                type="submit"
                 disabled={isSubmitting}
-                onClick={() => {
-                  setOtpStep("request");
-                  setFormState((current) => ({ ...current, otpCode: "" }));
-                  setError("");
-                  setNotice("");
-                }}
-                className="bf-button-secondary w-full justify-center"
+                className="bf-button-primary w-full justify-center"
               >
-                EDIT SIGN-UP DETAILS
+                {isSubmitting
+                  ? resetMode
+                    ? resetStep === "request"
+                      ? "SENDING RESET CODE..."
+                      : "UPDATING PASSWORD..."
+                    : mode === "SIGN UP"
+                      ? otpStep === "verify"
+                        ? "VERIFYING OTP..."
+                        : "SIGNING UP..."
+                      : "SIGNING IN..."
+                  : resetMode
+                    ? resetStep === "request"
+                      ? "SEND RESET CODE"
+                      : "UPDATE PASSWORD"
+                    : mode === "SIGN UP"
+                      ? otpStep === "verify"
+                        ? "VERIFY OTP"
+                        : "CREATE ACCOUNT"
+                      : "SIGN IN"}
               </button>
-            ) : null}
-          </form>
 
-          <p className="text-sm leading-7 text-muted">
-            Public pages remain open. Protected routes include researcher submissions,
-            dashboards, and owner admin tools.
-          </p>
+              {!resetMode && mode === "SIGN UP" && otpStep === "verify" ? (
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    setOtpStep("request");
+                    setFormState((current) => ({ ...current, otpCode: "", captchaToken: "" }));
+                    resetTransientState();
+                  }}
+                  className="bf-button-secondary w-full justify-center"
+                >
+                  EDIT SIGN-UP DETAILS
+                </button>
+              ) : null}
 
-          {!hasSupabaseEnv() ? (
-            <p className="text-sm leading-7 text-error">
-              Add your Supabase project URL and publishable key in `.env.local` before using this
-              page.
+              {resetMode && resetStep === "confirm" ? (
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    setResetStep("request");
+                    setFormState((current) => ({
+                      ...current,
+                      otpCode: "",
+                      password: "",
+                      captchaToken: ""
+                    }));
+                    resetTransientState();
+                  }}
+                  className="bf-button-secondary w-full justify-center"
+                >
+                  REQUEST A NEW RESET CODE
+                </button>
+              ) : null}
+            </form>
+
+            <div className="flex flex-wrap gap-4 text-[0.72rem] uppercase tracking-label">
+              {!resetMode ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetMode(true);
+                    setResetStep("request");
+                    resetTransientState();
+                  }}
+                  className="font-mono text-primary"
+                >
+                  FORGOT PASSWORD?
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetMode(false);
+                    setResetStep("request");
+                    resetTransientState();
+                  }}
+                  className="font-mono text-primary"
+                >
+                  BACK TO LOGIN
+                </button>
+              )}
+            </div>
+
+            <p className="text-sm leading-7 text-muted">
+              Public pages remain open. Protected routes include researcher submissions,
+              dashboards, and owner admin tools.
             </p>
-          ) : null}
 
-          <Link href="/" className="bf-button-tertiary">
-            RETURN TO LANDING
-          </Link>
+            {!hasSupabaseEnv() ? (
+              <p className="text-sm leading-7 text-error">
+                Add your Supabase project URL and publishable key in `.env.local` before using this
+                page.
+              </p>
+            ) : null}
+
+            <Link href="/" className="bf-button-tertiary">
+              RETURN TO LANDING
+            </Link>
           </div>
         </div>
       </div>

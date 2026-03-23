@@ -7,8 +7,6 @@ import { useMemo, useState } from "react";
 import { resolveOwnerProgram } from "@/lib/admin-data";
 import { adminSubmissions as seededAdminSubmissions } from "@/lib/admin-submissions-data";
 import { signOutBrowserSession } from "@/lib/supabase/browser-sign-out";
-import { createClient } from "@/lib/supabase/client";
-import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useDemoDataStore } from "@/lib/stores/demo-data-store";
 import { useAuthenticatedDemoStateSync } from "@/lib/use-demo-sync";
@@ -87,7 +85,6 @@ const navItems = [
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [supabase] = useState(() => (hasSupabaseEnv() ? createClient() : null));
   const { currentUser, hasHydrated, signOut } = useAppStore();
   useAuthenticatedDemoStateSync(currentUser?.role === "owner");
   const createdBounties = useDemoDataStore((state) => state.createdBounties);
@@ -151,7 +148,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
     setIsLoggingOut(true);
     signOut();
-    await signOutBrowserSession(supabase);
+    await signOutBrowserSession();
     setIsLoggingOut(false);
   }
 
