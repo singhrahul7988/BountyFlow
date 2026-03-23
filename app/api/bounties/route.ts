@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import { getRoleFromProfile, isAllowedOwnerEmail } from "@/lib/auth";
 import { normalizeStoredBounty } from "@/lib/demo-persistence";
 import type { BountyDetail } from "@/lib/bounty-data";
 import {
@@ -10,8 +9,11 @@ import {
   performTreasuryTransfer,
   provisionEscrowWallet
 } from "@/lib/onchain/service";
+import {
+  rejectUnauthorizedResourceAccess,
+  requireApiRole
+} from "@/lib/server/authorization";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
-import { getProfileByUserId } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
@@ -51,20 +53,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Bounty payload is required." }, { status: 400 });
   }
 
-  const supabase = createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const auth = await requireApiRole({
+    route: "/api/bounties",
+    roles: ["owner"],
+    requireAllowedOwnerEmail: true
+  });
 
-  if (!user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  if (auth.error) {
+    return auth.error;
   }
 
-  const { profile } = await getProfileByUserId(supabase, user.id);
-  const role = getRoleFromProfile(profile);
+  const { supabase, user } = auth;
 
-  if (role !== "owner" || !isAllowedOwnerEmail(user.email || "")) {
-    return NextResponse.json({ error: "Owner access required." }, { status: 403 });
+  const { data: existingBounty, error: existingBountyError } = await supabase
+    .from("demo_bounties")
+    .select("owner_id")
+    .eq("slug", bounty.slug)
+    .maybeSingle();
+
+  if (existingBountyError) {
+    return NextResponse.json({ error: existingBountyError.message }, { status: 500 });
+  }
+
+  if (existingBounty?.owner_id && existingBounty.owner_id !== user.id) {
+    return rejectUnauthorizedResourceAccess({
+      route: "/api/bounties",
+      userId: user.id,
+      email: user.email ?? null,
+      resourceType: "bounty",
+      resourceId: bounty.slug,
+      message: "This bounty belongs to a different owner."
+    });
   }
 
   const escrowWallet = await provisionEscrowWallet({

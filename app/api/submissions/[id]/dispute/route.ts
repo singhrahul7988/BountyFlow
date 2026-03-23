@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { getRoleFromProfile } from "@/lib/auth";
-import { getAdminSubmissionById } from "@/lib/admin-submissions-data";
 import { formatUtcTimestamp, normalizeStoredSubmission } from "@/lib/demo-persistence";
-import { getResearcherSubmissionById } from "@/lib/dashboard-data";
 import { createOwnerNotification } from "@/lib/onchain/service";
 import type { SubmissionDisputeNote } from "@/lib/demo-types";
+import {
+  rejectMissingOwnedResource,
+  rejectUnauthorizedResourceAccess,
+  requireApiRole
+} from "@/lib/server/authorization";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
-import { getProfileByUserId } from "@/lib/supabase/profiles";
-import { createClient } from "@/lib/supabase/server";
 
 export async function POST(
   request: Request,
@@ -34,20 +34,16 @@ export async function POST(
     );
   }
 
-  const supabase = createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const auth = await requireApiRole({
+    route: "/api/submissions/[id]/dispute",
+    roles: ["researcher"]
+  });
 
-  if (!user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  if (auth.error) {
+    return auth.error;
   }
 
-  const { profile } = await getProfileByUserId(supabase, user.id);
-
-  if (getRoleFromProfile(profile) !== "researcher") {
-    return NextResponse.json({ error: "Researcher access required." }, { status: 403 });
-  }
+  const { supabase, user } = auth;
 
   let { data: row, error } = await supabase
     .from("demo_submissions")
@@ -60,32 +56,25 @@ export async function POST(
   }
 
   if (!row) {
-    const seededResearcher = getResearcherSubmissionById(params.id);
-    const seededAdmin = getAdminSubmissionById(`BF-${params.id.replace(/^sub-/, "")}`);
-
-    if (!seededResearcher || !seededAdmin) {
-      return NextResponse.json({ error: "Submission not found." }, { status: 404 });
-    }
-
-    row = {
-      admin_id: seededAdmin.id,
-      researcher_submission_id: seededResearcher.id,
-      researcher_user_id: user.id,
-      owner_id: null,
-      payload: {
-        adminSubmission: seededAdmin,
-        researcherSubmission: seededResearcher,
-        decision: {
-          status: seededAdmin.status,
-          payoutPct: seededAdmin.recommendedPct,
-          disputeNote: seededAdmin.disputeNote
-        }
-      }
-    };
+    return rejectMissingOwnedResource({
+      route: "/api/submissions/[id]/dispute",
+      userId: user.id,
+      email: user.email ?? null,
+      resourceType: "submission",
+      resourceId: params.id,
+      message: "Submission not found."
+    });
   }
 
   if (row.researcher_user_id !== user.id) {
-    return NextResponse.json({ error: "This submission belongs to another researcher." }, { status: 403 });
+    return rejectUnauthorizedResourceAccess({
+      route: "/api/submissions/[id]/dispute",
+      userId: user.id,
+      email: user.email ?? null,
+      resourceType: "submission",
+      resourceId: params.id,
+      message: "This submission belongs to another researcher."
+    });
   }
 
   const normalized = normalizeStoredSubmission(row);

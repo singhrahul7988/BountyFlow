@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { getRoleFromProfile, isAllowedOwnerEmail } from "@/lib/auth";
 import type { AdminSubmissionStatus } from "@/lib/admin-submissions-data";
 import { applySubmissionDecisionToResearcher } from "@/lib/demo-lifecycle";
 import { normalizeStoredSubmission } from "@/lib/demo-persistence";
 import type { SubmissionDecision } from "@/lib/demo-types";
+import {
+  rejectMissingOwnedResource,
+  requireApiRole
+} from "@/lib/server/authorization";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
-import { getProfileByUserId } from "@/lib/supabase/profiles";
-import { createClient } from "@/lib/supabase/server";
 
 export async function PATCH(
   request: Request,
@@ -40,21 +41,17 @@ export async function PATCH(
     return NextResponse.json({ error: "Unsupported submission status." }, { status: 400 });
   }
 
-  const supabase = createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const auth = await requireApiRole({
+    route: "/api/submissions/[id]",
+    roles: ["owner"],
+    requireAllowedOwnerEmail: true
+  });
 
-  if (!user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  if (auth.error) {
+    return auth.error;
   }
 
-  const { profile } = await getProfileByUserId(supabase, user.id);
-  const role = getRoleFromProfile(profile);
-
-  if (role !== "owner" || !isAllowedOwnerEmail(user.email || "")) {
-    return NextResponse.json({ error: "Owner access required." }, { status: 403 });
-  }
+  const { supabase, user } = auth;
 
   const { data: existingRow, error: loadError } = await supabase
     .from("demo_submissions")
@@ -67,11 +64,14 @@ export async function PATCH(
   }
 
   if (!existingRow) {
-    return NextResponse.json({ error: "Submission not found." }, { status: 404 });
-  }
-
-  if (existingRow.owner_id && existingRow.owner_id !== user.id) {
-    return NextResponse.json({ error: "This submission belongs to a different owner." }, { status: 403 });
+    return rejectMissingOwnedResource({
+      route: "/api/submissions/[id]",
+      userId: user.id,
+      email: user.email ?? null,
+      resourceType: "submission",
+      resourceId: params.id,
+      message: "Submission not found."
+    });
   }
 
   const normalized = normalizeStoredSubmission(existingRow);

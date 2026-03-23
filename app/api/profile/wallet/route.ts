@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { createPublicClient, http, isAddress } from "viem";
 import { verifySiweMessage } from "viem/siwe";
 
+import { logUnauthorizedAccessAttempt, requireApiRole } from "@/lib/server/authorization";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
-import { createClient } from "@/lib/supabase/server";
 import { getConfiguredChain, getConfiguredDomain, getConfiguredTransportUrl } from "@/lib/web3/chains";
 
 type WalletLinkBody = {
@@ -34,16 +34,28 @@ export async function POST(request: Request) {
   const address = body.address as `0x${string}`;
   const signature = body.signature as `0x${string}`;
 
-  const supabase = createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const auth = await requireApiRole({
+    route: "/api/profile/wallet",
+    roles: ["owner", "researcher"]
+  });
 
-  if (!user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  if (auth.error) {
+    return auth.error;
   }
 
+  const { supabase, user } = auth;
+
   if (!body.message.includes(user.id)) {
+    logUnauthorizedAccessAttempt({
+      route: "/api/profile/wallet",
+      reason: "wallet_message_user_scope_mismatch",
+      status: 400,
+      userId: user.id,
+      email: user.email ?? null,
+      resourceType: "profile",
+      resourceId: user.id
+    });
+
     return NextResponse.json(
       { error: "Wallet signature is not scoped to the current user." },
       { status: 400 }
@@ -65,6 +77,16 @@ export async function POST(request: Request) {
   });
 
   if (!valid) {
+    logUnauthorizedAccessAttempt({
+      route: "/api/profile/wallet",
+      reason: "wallet_signature_verification_failed",
+      status: 400,
+      userId: user.id,
+      email: user.email ?? null,
+      resourceType: "profile",
+      resourceId: user.id
+    });
+
     return NextResponse.json({ error: "Wallet signature verification failed." }, { status: 400 });
   }
 

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import { getRoleFromProfile } from "@/lib/auth";
 import {
   buildDecisionFromAdminSubmission,
   buildPersistedSubmissionPayload,
@@ -9,9 +8,8 @@ import {
 import type { AdminSubmission } from "@/lib/admin-submissions-data";
 import type { ResearcherSubmission } from "@/lib/dashboard-data";
 import { createOwnerNotification } from "@/lib/onchain/service";
+import { requireApiRole } from "@/lib/server/authorization";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
-import { getProfileByUserId } from "@/lib/supabase/profiles";
-import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   if (!hasSupabaseEnv()) {
@@ -33,21 +31,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Submission payload is required." }, { status: 400 });
   }
 
-  const supabase = createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const auth = await requireApiRole({
+    route: "/api/submissions",
+    roles: ["researcher"]
+  });
 
-  if (!user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  if (auth.error) {
+    return auth.error;
   }
 
-  const { profile } = await getProfileByUserId(supabase, user.id);
-  const role = getRoleFromProfile(profile);
-
-  if (role !== "researcher") {
-    return NextResponse.json({ error: "Researcher access required." }, { status: 403 });
-  }
+  const { supabase, user } = auth;
 
   const { data: matchingBounty } = await supabase
     .from("demo_bounties")

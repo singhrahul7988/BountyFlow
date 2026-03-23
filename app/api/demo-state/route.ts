@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getRoleFromProfile, isAllowedOwnerEmail } from "@/lib/auth";
+import { isAllowedOwnerEmail } from "@/lib/auth";
 import {
   normalizeStoredBounty,
   normalizeStoredNotification,
@@ -11,9 +11,8 @@ import type { AdminSubmission } from "@/lib/admin-submissions-data";
 import type { BountyDetail } from "@/lib/bounty-data";
 import type { ResearcherSubmission } from "@/lib/dashboard-data";
 import type { SubmissionDecision } from "@/lib/demo-types";
+import { requireApiRole } from "@/lib/server/authorization";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
-import { getProfileByUserId } from "@/lib/supabase/profiles";
-import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   if (!hasSupabaseEnv()) {
@@ -26,21 +25,17 @@ export async function GET() {
     });
   }
 
-  const supabase = createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const auth = await requireApiRole({
+    route: "/api/demo-state",
+    roles: ["owner", "researcher"],
+    requireAllowedOwnerEmail: true
+  });
 
-  if (!user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  if (auth.error) {
+    return auth.error;
   }
 
-  const { profile } = await getProfileByUserId(supabase, user.id);
-  const role = getRoleFromProfile(profile);
-
-  if (!role) {
-    return NextResponse.json({ error: "Profile role is missing." }, { status: 403 });
-  }
+  const { supabase, user, role } = auth;
 
   const [
     bountiesResult,
@@ -59,7 +54,7 @@ export async function GET() {
       ? supabase
           .from("demo_submissions")
           .select("admin_id, researcher_submission_id, payload")
-          .or(`owner_id.eq.${user.id},owner_id.is.null`)
+          .eq("owner_id", user.id)
           .order("created_at", { ascending: false })
       : Promise.resolve({ data: [], error: null }),
     role === "researcher"

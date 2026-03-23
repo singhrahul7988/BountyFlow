@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { getRoleFromProfile, isAllowedOwnerEmail } from "@/lib/auth";
+import { requireApiRole } from "@/lib/server/authorization";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
-import { getProfileByUserId } from "@/lib/supabase/profiles";
-import { createClient } from "@/lib/supabase/server";
 
 export async function POST() {
   if (!hasSupabaseEnv()) {
@@ -13,20 +11,17 @@ export async function POST() {
     );
   }
 
-  const supabase = createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const auth = await requireApiRole({
+    route: "/api/notifications/read-all",
+    roles: ["owner"],
+    requireAllowedOwnerEmail: true
+  });
 
-  if (!user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  if (auth.error) {
+    return auth.error;
   }
 
-  const { profile } = await getProfileByUserId(supabase, user.id);
-
-  if (getRoleFromProfile(profile) !== "owner" || !isAllowedOwnerEmail(user.email || "")) {
-    return NextResponse.json({ error: "Owner access required." }, { status: 403 });
-  }
+  const { supabase, user } = auth;
 
   const { error } = await supabase
     .from("demo_notifications")

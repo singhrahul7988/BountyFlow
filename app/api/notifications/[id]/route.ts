@@ -1,27 +1,17 @@
 import { NextResponse } from "next/server";
 
-import { getRoleFromProfile, isAllowedOwnerEmail } from "@/lib/auth";
+import {
+  rejectMissingOwnedResource,
+  requireApiRole
+} from "@/lib/server/authorization";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
-import { getProfileByUserId } from "@/lib/supabase/profiles";
-import { createClient } from "@/lib/supabase/server";
 
 async function assertOwner() {
-  const supabase = createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { supabase, user: null, error: NextResponse.json({ error: "Authentication required." }, { status: 401 }) };
-  }
-
-  const { profile } = await getProfileByUserId(supabase, user.id);
-
-  if (getRoleFromProfile(profile) !== "owner" || !isAllowedOwnerEmail(user.email || "")) {
-    return { supabase, user: null, error: NextResponse.json({ error: "Owner access required." }, { status: 403 }) };
-  }
-
-  return { supabase, user, error: null };
+  return requireApiRole({
+    route: "/api/notifications/[id]",
+    roles: ["owner"],
+    requireAllowedOwnerEmail: true
+  });
 }
 
 export async function PATCH(
@@ -42,6 +32,27 @@ export async function PATCH(
   }
 
   const body = (await request.json().catch(() => null)) as { unread?: boolean } | null;
+  const { data: existingNotification, error: loadError } = await supabase
+    .from("demo_notifications")
+    .select("id")
+    .eq("id", params.id)
+    .eq("owner_id", user.id)
+    .maybeSingle();
+
+  if (loadError) {
+    return NextResponse.json({ error: loadError.message }, { status: 500 });
+  }
+
+  if (!existingNotification) {
+    return rejectMissingOwnedResource({
+      route: "/api/notifications/[id]",
+      userId: user.id,
+      email: user.email ?? null,
+      resourceType: "notification",
+      resourceId: params.id,
+      message: "Notification not found."
+    });
+  }
 
   const { error: updateError } = await supabase
     .from("demo_notifications")
@@ -71,6 +82,28 @@ export async function DELETE(
 
   if (error || !user) {
     return error;
+  }
+
+  const { data: existingNotification, error: loadError } = await supabase
+    .from("demo_notifications")
+    .select("id")
+    .eq("id", params.id)
+    .eq("owner_id", user.id)
+    .maybeSingle();
+
+  if (loadError) {
+    return NextResponse.json({ error: loadError.message }, { status: 500 });
+  }
+
+  if (!existingNotification) {
+    return rejectMissingOwnedResource({
+      route: "/api/notifications/[id]",
+      userId: user.id,
+      email: user.email ?? null,
+      resourceType: "notification",
+      resourceId: params.id,
+      message: "Notification not found."
+    });
   }
 
   const { error: deleteError } = await supabase

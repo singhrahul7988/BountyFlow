@@ -121,15 +121,15 @@ create policy "Owners can read queue submissions"
 on public.demo_submissions
 for select
 to authenticated
-using (((select auth.uid()) = owner_id) or owner_id is null);
+using ((select auth.uid()) = owner_id);
 
 drop policy if exists "Owners can update queue submissions" on public.demo_submissions;
 create policy "Owners can update queue submissions"
 on public.demo_submissions
 for update
 to authenticated
-using (((select auth.uid()) = owner_id) or owner_id is null)
-with check (((select auth.uid()) = owner_id) or owner_id is null);
+using ((select auth.uid()) = owner_id)
+with check ((select auth.uid()) = owner_id);
 
 drop policy if exists "Owners can manage own notifications" on public.demo_notifications;
 create policy "Owners can manage own notifications"
