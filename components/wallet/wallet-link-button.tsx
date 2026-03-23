@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createSiweMessage, generateSiweNonce } from "viem/siwe";
 import {
   useConnect,
@@ -68,6 +68,22 @@ export function WalletLinkButton({
 
     return `LINK ${truncateAddress(address)}`;
   }, [address, chainId, configuredChainId, currentUser, isConnected, walletIsLinked]);
+
+  useEffect(() => {
+    if (showInlineFeedback || !error || typeof window === "undefined") {
+      return;
+    }
+
+    window.alert(error);
+  }, [error, showInlineFeedback]);
+
+  useEffect(() => {
+    if (showInlineFeedback || !notice || typeof window === "undefined") {
+      return;
+    }
+
+    window.alert(notice);
+  }, [notice, showInlineFeedback]);
 
   async function refreshAuthUser() {
     const {

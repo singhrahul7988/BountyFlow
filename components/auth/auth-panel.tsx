@@ -348,8 +348,9 @@ export function AuthPanel() {
 
   return (
     <section className="bf-shell pt-32 pb-24">
-      <div className="grid gap-8 xl:grid-cols-[0.52fr_0.48fr]">
-        <div className="space-y-6 bg-surface-low p-8 md:p-10">
+      <div className="mx-auto w-full max-w-[1420px]">
+        <div className="grid gap-8 xl:grid-cols-[0.52fr_0.48fr]">
+          <div className="space-y-6 bg-surface-low p-8 md:p-10">
           <p className="bf-label text-primary">ROLE-BASED ACCESS</p>
           <h1 className="bf-display text-[2.6rem] leading-none tracking-tightHeading sm:text-[4rem]">
             SIGN IN TO
@@ -363,8 +364,10 @@ export function AuthPanel() {
                 key={item.value}
                 type="button"
                 onClick={() => setRole(item.value)}
-                className={`space-y-4 p-5 text-left transition-colors duration-100 ease-linear ${
-                  role === item.value ? "bg-surface-high" : "bg-background hover:bg-surface-high"
+                className={`space-y-4 border p-5 text-left transition-colors duration-100 ease-linear ${
+                  role === item.value
+                    ? "border-primary bg-surface-high shadow-[0_0_0_1px_rgba(99,255,205,0.35)]"
+                    : "border-outline/12 bg-background hover:border-outline/25 hover:bg-surface-high"
                 }`}
               >
                 <p className={`bf-label ${role === item.value ? "text-primary" : "text-muted"}`}>
@@ -376,7 +379,7 @@ export function AuthPanel() {
           </div>
         </div>
 
-        <div className="space-y-6 bg-surface-low p-8 md:p-10">
+          <div className="space-y-6 bg-surface-low p-8 md:p-10">
           <div className="flex gap-6 border-b border-outline-variant/15 pb-3">
             {authModes.map((item) => (
               <button
@@ -509,6 +512,7 @@ export function AuthPanel() {
           <Link href="/" className="bf-button-tertiary">
             RETURN TO LANDING
           </Link>
+          </div>
         </div>
       </div>
     </section>

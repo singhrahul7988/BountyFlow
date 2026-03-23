@@ -13,7 +13,11 @@ import { useDemoDataStore } from "@/lib/stores/demo-data-store";
 import { useAuthenticatedDemoStateSync } from "@/lib/use-demo-sync";
 import { ResearcherDashboard } from "./researcher-dashboard";
 
-export function ResearcherDashboardShell() {
+export function ResearcherDashboardShell({
+  utilityPage = null
+}: {
+  utilityPage?: "Terminal" | "Nodes" | "Security" | null;
+}) {
   const currentUser = useAppStore((state) => state.currentUser);
   useAuthenticatedDemoStateSync(currentUser?.role === "researcher");
   const submissionDecisions = useDemoDataStore((state) => state.submissionDecisions);
@@ -38,6 +42,7 @@ export function ResearcherDashboardShell() {
       submissions={resolvedSubmissions}
       summary={summary}
       payoutHistory={payoutHistory}
+      utilityPage={utilityPage}
     />
   );
 }
