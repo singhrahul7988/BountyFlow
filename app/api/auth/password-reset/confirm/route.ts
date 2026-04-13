@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     return response;
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error: verifyError } = await supabase.auth.verifyOtp({
     email: email.value,
     token: otpCode.value,

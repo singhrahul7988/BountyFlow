@@ -27,7 +27,7 @@ export async function GET() {
     return NextResponse.json({ items: [] satisfies BountyDetail[] });
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("demo_bounties")
     .select("slug, payload")

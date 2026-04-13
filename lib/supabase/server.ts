@@ -4,8 +4,8 @@ import { cookies } from "next/headers";
 import { normalizeSupabaseCookieOptions } from "@/lib/server/auth-session";
 import { getSupabasePublishableKey, getSupabaseUrl } from "./config";
 
-export function createClient() {
-  const cookieStore = cookies() as unknown as Awaited<ReturnType<typeof cookies>>;
+export async function createClient() {
+  const cookieStore = await cookies();
 
   return createServerClient(getSupabaseUrl(), getSupabasePublishableKey(), {
     cookies: {

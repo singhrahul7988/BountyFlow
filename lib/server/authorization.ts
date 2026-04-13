@@ -5,6 +5,8 @@ import { getRoleFromProfile, isAllowedOwnerEmail, type UserRole } from "@/lib/au
 import { getProfileByUserId } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
 type UnauthorizedAccessLogInput = {
   route: string;
   reason: string;
@@ -16,7 +18,7 @@ type UnauthorizedAccessLogInput = {
 };
 
 type AuthorizationSuccess = {
-  supabase: ReturnType<typeof createClient>;
+  supabase: SupabaseServerClient;
   user: User;
   role: UserRole;
 };
@@ -25,7 +27,7 @@ type AuthorizationResult =
   | ({ error: null } & AuthorizationSuccess)
   | {
       error: NextResponse;
-      supabase: ReturnType<typeof createClient>;
+      supabase: SupabaseServerClient;
       user: null;
       role: null;
     };
@@ -39,7 +41,7 @@ export function logUnauthorizedAccessAttempt(input: UnauthorizedAccessLogInput) 
 }
 
 function buildAuthorizationFailure(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseServerClient,
   input: UnauthorizedAccessLogInput,
   message: string
 ): AuthorizationResult {
@@ -58,7 +60,7 @@ export async function requireApiRole(options: {
   roles?: UserRole[];
   requireAllowedOwnerEmail?: boolean;
 }): Promise<AuthorizationResult> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

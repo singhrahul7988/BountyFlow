@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   const sessionState = getSessionWindowState(request.cookies);
-  const supabase = createClient();
+  const supabase = await createClient();
 
   if (sessionState.expired) {
     try {

@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     return buildAuthErrorResponse("Selected account role is invalid.", 400, undefined, request.url);
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase.auth.verifyOtp({
     email: email.value,
     token: otpCode.value,
