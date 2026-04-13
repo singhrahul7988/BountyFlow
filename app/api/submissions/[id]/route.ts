@@ -17,7 +17,7 @@ import { hasSupabaseEnv } from "@/lib/supabase/config";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   if (!hasSupabaseEnv()) {
     return NextResponse.json(
@@ -26,7 +26,9 @@ export async function PATCH(
     );
   }
 
-  const submissionId = validateIdentifier(params.id, "id", {
+  const { id } = await params;
+
+  const submissionId = validateIdentifier(id, "id", {
     maxLength: 40,
     pattern: /^BF-[A-Z0-9-]+$/
   });

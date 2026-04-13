@@ -5,7 +5,7 @@ import { normalizeSupabaseCookieOptions } from "@/lib/server/auth-session";
 import { getSupabasePublishableKey, getSupabaseUrl } from "./config";
 
 export function createClient() {
-  const cookieStore = cookies();
+  const cookieStore = cookies() as unknown as Awaited<ReturnType<typeof cookies>>;
 
   return createServerClient(getSupabaseUrl(), getSupabasePublishableKey(), {
     cookies: {

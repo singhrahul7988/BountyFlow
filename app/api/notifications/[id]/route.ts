@@ -22,7 +22,7 @@ async function assertOwner() {
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   if (!hasSupabaseEnv()) {
     return NextResponse.json(
@@ -31,7 +31,9 @@ export async function PATCH(
     );
   }
 
-  const notificationId = validateIdentifier(params.id, "id", {
+  const { id } = await params;
+
+  const notificationId = validateIdentifier(id, "id", {
     maxLength: 80,
     pattern: /^[A-Za-z0-9._:-]+$/
   });
@@ -95,7 +97,7 @@ export async function PATCH(
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   if (!hasSupabaseEnv()) {
     return NextResponse.json(
@@ -104,7 +106,9 @@ export async function DELETE(
     );
   }
 
-  const notificationId = validateIdentifier(params.id, "id", {
+  const { id } = await params;
+
+  const notificationId = validateIdentifier(id, "id", {
     maxLength: 80,
     pattern: /^[A-Za-z0-9._:-]+$/
   });

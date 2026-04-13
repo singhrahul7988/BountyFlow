@@ -74,7 +74,7 @@ function buildSessionExpiredResponse(request: NextRequest, isApiRoute: boolean, 
   return response;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const confirmed = request.nextUrl.searchParams.get("confirmed");
 

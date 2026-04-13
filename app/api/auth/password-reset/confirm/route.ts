@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     return buildAuthErrorResponse(passwordError, 400, undefined, request.url);
   }
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const resetState = readPasswordResetState(cookieStore);
   const now = Date.now();
 
